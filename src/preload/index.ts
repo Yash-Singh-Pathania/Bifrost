@@ -1,11 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS, AppSettings, SearchResult, ProcessingProgress } from '../shared/types'
 
-/**
- * Typed API exposed to the renderer process via contextBridge.
- * This is the ONLY way the React UI communicates with the backend.
- */
 const api = {
+  // ── File Dialog ───────────────────────────────────────────
+  openFileDialog: (): Promise<string | null> =>
+    ipcRenderer.invoke(IPC_CHANNELS.OPEN_FILE_DIALOG),
+
   // ── Video Processing ──────────────────────────────────────
   processVideo: (filePath: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.PROCESS_VIDEO, filePath),
@@ -13,9 +13,16 @@ const api = {
   getVideoInfo: (filePath: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.GET_VIDEO_INFO, filePath),
 
-  // ── Search ────────────────────────────────────────────────
-  search: (query: string): Promise<SearchResult[]> =>
-    ipcRenderer.invoke(IPC_CHANNELS.SEARCH, query),
+  // ── Search (pass current video's dataDir) ─────────────────
+  search: (query: string, videoDataDir: string): Promise<SearchResult[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SEARCH, query, videoDataDir),
+
+  // ── Library ───────────────────────────────────────────────
+  getLibrary: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_LIBRARY),
+
+  deleteFromLibrary: (id: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.DELETE_FROM_LIBRARY, id),
 
   // ── Settings ──────────────────────────────────────────────
   getSettings: (): Promise<AppSettings> =>
@@ -28,7 +35,7 @@ const api = {
   checkDependencies: () =>
     ipcRenderer.invoke(IPC_CHANNELS.CHECK_DEPENDENCIES),
 
-  // ── Event listeners (main → renderer) ─────────────────────
+  // ── Events (main → renderer) ──────────────────────────────
   onProcessingProgress: (callback: (progress: ProcessingProgress) => void) => {
     const listener = (_event: any, progress: ProcessingProgress) => callback(progress)
     ipcRenderer.on(IPC_CHANNELS.PROCESSING_PROGRESS, listener)
@@ -48,8 +55,5 @@ const api = {
   }
 }
 
-// Expose to renderer as window.api
 contextBridge.exposeInMainWorld('api', api)
-
-// Type declaration for the renderer
 export type ElectronAPI = typeof api

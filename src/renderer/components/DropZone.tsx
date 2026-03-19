@@ -2,11 +2,12 @@ import React, { useState, useCallback, DragEvent } from 'react'
 
 interface DropZoneProps {
   onDrop: (filePath: string, fileName: string) => void
+  onImportClick: () => void
 }
 
 const ACCEPTED_EXTENSIONS = ['.mp4', '.mkv', '.webm', '.mov', '.avi', '.m4v', '.wmv']
 
-export default function DropZone({ onDrop }: DropZoneProps) {
+export default function DropZone({ onDrop, onImportClick }: DropZoneProps) {
   const [isDragging, setIsDragging] = useState(false)
 
   const handleDragOver = useCallback((e: DragEvent) => {
@@ -48,6 +49,8 @@ export default function DropZone({ onDrop }: DropZoneProps) {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        onClick={onImportClick}
+        style={{ cursor: 'pointer' }}
       >
         <div className="dropzone-content">
           <div className="dropzone-icon">
@@ -65,6 +68,13 @@ export default function DropZone({ onDrop }: DropZoneProps) {
             <span className="hint-dot" />
             We'll transcribe the audio and index every frame
           </div>
+          <button
+            className="btn-primary dropzone-browse-btn"
+            onClick={e => { e.stopPropagation(); onImportClick() }}
+            style={{ marginTop: 20 }}
+          >
+            Browse Files
+          </button>
         </div>
 
         {/* Animated border */}

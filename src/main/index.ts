@@ -8,13 +8,14 @@ let mainWindow: BrowserWindow | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    minWidth: 900,
-    minHeight: 600,
+    width: 1280,
+    height: 860,
+    minWidth: 960,
+    minHeight: 640,
     show: false,
     titleBarStyle: 'hiddenInset',
-    backgroundColor: '#0a0a1a',
+    trafficLightPosition: { x: 16, y: 18 },
+    backgroundColor: '#FBF9F6',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,

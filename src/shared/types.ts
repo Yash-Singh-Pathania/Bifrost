@@ -94,6 +94,21 @@ export interface VideoInfo {
   thumbnailPath?: string
 }
 
+/** An entry in the local video library — persisted to disk */
+export interface VideoLibraryEntry {
+  id: string             // uuid
+  filePath: string
+  fileName: string
+  duration: number
+  width: number
+  height: number
+  size: number
+  indexedAt: string      // ISO date string
+  chunkCount: number
+  frameCount: number
+  dataDir: string        // where the embeddings live
+}
+
 // ============================================================
 // IPC Channel names
 // ============================================================
@@ -105,6 +120,11 @@ export const IPC_CHANNELS = {
   SAVE_SETTINGS: 'settings:save',
   GET_VIDEO_INFO: 'video:get-info',
   CHECK_DEPENDENCIES: 'system:check-deps',
+  OPEN_FILE_DIALOG: 'dialog:open-file',
+  GET_LIBRARY: 'library:get',
+  SAVE_LIBRARY: 'library:save',
+  DELETE_FROM_LIBRARY: 'library:delete',
+  SWITCH_VIDEO: 'library:switch',
 
   // Events (main → renderer)
   PROCESSING_PROGRESS: 'pipeline:progress',
