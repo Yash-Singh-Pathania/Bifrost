@@ -17,13 +17,15 @@ function createWindow(): void {
     minHeight: 640,
     show: false,
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 16, y: 18 },
-    backgroundColor: '#FBF9F6',
+    trafficLightPosition: { x: 16, y: 16 },
+    backgroundColor: '#FFFFFF',
+    title: 'Bifrost',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      webSecurity: false // Allow loading local file:// URIs for video playback
     }
   })
 

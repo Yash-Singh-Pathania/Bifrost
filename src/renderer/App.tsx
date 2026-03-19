@@ -136,8 +136,8 @@ export default function App() {
         <div className="titlebar-drag" />
         <div className="titlebar-content">
           <div className="titlebar-logo">
-            <span className="logo-icon">◉</span>
-            <span className="logo-text">Video Search</span>
+            <span className="logo-icon">·</span>
+            <span className="logo-text">Bifrost</span>
           </div>
           <div className="titlebar-actions">
             {appState === 'ready' && (

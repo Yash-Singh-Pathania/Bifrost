@@ -49,7 +49,12 @@ export default function Library({ entries, currentId, onSelect, onDelete, onImpo
       <div className="library-list">
         {entries.length === 0 ? (
           <div className="library-empty">
-            <div className="library-empty-icon">🎬</div>
+            <div className="library-empty-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="2" y="2" width="20" height="20" rx="2.5" ry="2.5"></rect>
+                <line x1="12" y1="18" x2="12" y2="18"></line>
+              </svg>
+            </div>
             <p>No videos yet</p>
             <p className="library-empty-sub">Import or drop a video to get started</p>
           </div>

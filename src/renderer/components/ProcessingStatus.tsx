@@ -6,13 +6,13 @@ interface ProcessingStatusProps {
 }
 
 const STAGES: { key: ProcessingStage; label: string; icon: string }[] = [
-  { key: 'extracting-audio',  label: 'Extracting Audio',   icon: '🎵' },
-  { key: 'transcribing',      label: 'Transcribing',       icon: '📝' },
-  { key: 'extracting-frames', label: 'Extracting Frames',  icon: '🎞️' },
-  { key: 'embedding-text',    label: 'Embedding Text',     icon: '🧠' },
-  { key: 'embedding-frames',  label: 'Embedding Frames',   icon: '👁' },
-  { key: 'storing',           label: 'Storing in DB',      icon: '💾' },
-  { key: 'done',              label: 'Done!',              icon: '✅' },
+  { key: 'extracting-audio',  label: 'Extracting Audio',   icon: '○' },
+  { key: 'transcribing',      label: 'Transcribing',       icon: '○' },
+  { key: 'extracting-frames', label: 'Extracting Frames',  icon: '○' },
+  { key: 'embedding-text',    label: 'Embedding Text',     icon: '○' },
+  { key: 'embedding-frames',  label: 'Embedding Frames',   icon: '○' },
+  { key: 'storing',           label: 'Storing in DB',      icon: '○' },
+  { key: 'done',              label: 'Done',               icon: '○' },
 ]
 
 function getStageIndex(stage: ProcessingStage): number {

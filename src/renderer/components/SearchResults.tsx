@@ -75,7 +75,7 @@ export default function SearchResults({ results, onResultClick, isSearching }: S
           >
             <div className="result-left">
               <span className={`result-source-badge ${result.source}`}>
-                {result.source === 'transcript' ? '🎤' : '👁'}
+                {result.source === 'transcript' ? 'TXT' : 'IMG'}
               </span>
               <span className="result-timestamp">{formatTime(result.timestamp)}</span>
             </div>
