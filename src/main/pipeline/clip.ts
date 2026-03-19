@@ -7,7 +7,7 @@ import { v4 as uuid } from 'uuid'
  * Get the Python executable inside the venv
  */
 function getPythonPath(): string {
-  const pythonDir = join(__dirname, '../../../python')
+  const pythonDir = process.env.PYTHON_DIR || join(__dirname, '../../../python')
   return join(pythonDir, 'venv', 'bin', 'python3')
 }
 

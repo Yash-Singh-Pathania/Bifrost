@@ -4,6 +4,9 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { registerIpcHandlers } from './ipc'
 import { DEFAULT_SETTINGS } from '../shared/types'
 
+// Expose the real project root to bundled pipeline modules
+process.env.PYTHON_DIR = join(app.getAppPath(), 'python')
+
 let mainWindow: BrowserWindow | null = null
 
 function createWindow(): void {

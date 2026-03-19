@@ -14,7 +14,9 @@ export interface TranscriptionProvider {
  * Get the Python executable inside the venv
  */
 function getPythonPath(): string {
-  const pythonDir = join(__dirname, '../../../python')
+  // PYTHON_DIR is set by index.ts from app.getAppPath() when running in Electron.
+  // Falls back to relative path when running via tsx directly.
+  const pythonDir = process.env.PYTHON_DIR || join(__dirname, '../../../python')
   return join(pythonDir, 'venv', 'bin', 'python3')
 }
 
