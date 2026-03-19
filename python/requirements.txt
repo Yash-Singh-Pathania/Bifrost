@@ -1,0 +1,15 @@
+# Video Search — Python Dependencies
+# All installed into python/venv/ via setup.sh
+
+# Core ML
+torch>=2.0.0
+torchvision>=0.15.0
+
+# CLIP for visual embeddings
+open-clip-torch>=2.24.0
+
+# Whisper for transcription (CTranslate2-based, fast even on CPU)
+faster-whisper>=1.0.0
+
+# Image processing
+Pillow>=10.0.0
