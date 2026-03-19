@@ -14,7 +14,7 @@ export interface TranscriptionProvider {
  * Get the Python executable inside the venv
  */
 function getPythonPath(): string {
-  const pythonDir = join(__dirname, '../../python')
+  const pythonDir = join(__dirname, '../../../python')
   return join(pythonDir, 'venv', 'bin', 'python3')
 }
 
@@ -30,7 +30,7 @@ class LocalWhisperProvider implements TranscriptionProvider {
 
   async transcribe(audioPath: string): Promise<TranscriptChunk[]> {
     const pythonPath = getPythonPath()
-    const scriptPath = join(__dirname, '../../python/transcribe.py')
+    const scriptPath = join(__dirname, '../../../python/transcribe.py')
 
     return new Promise((resolve, reject) => {
       const proc = spawn(pythonPath, [

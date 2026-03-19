@@ -7,7 +7,7 @@ import { v4 as uuid } from 'uuid'
  * Get the Python executable inside the venv
  */
 function getPythonPath(): string {
-  const pythonDir = join(__dirname, '../../python')
+  const pythonDir = join(__dirname, '../../../python')
   return join(pythonDir, 'venv', 'bin', 'python3')
 }
 
@@ -20,7 +20,7 @@ export async function embedFrames(
   settings: AppSettings
 ): Promise<FrameEmbedding[]> {
   const pythonPath = getPythonPath()
-  const scriptPath = join(__dirname, '../../python/clip_server.py')
+  const scriptPath = join(__dirname, '../../../python/clip_server.py')
 
   return new Promise((resolve, reject) => {
     const proc = spawn(pythonPath, [scriptPath])
@@ -70,7 +70,7 @@ export async function embedTextWithClip(
   settings: AppSettings
 ): Promise<number[]> {
   const pythonPath = getPythonPath()
-  const scriptPath = join(__dirname, '../../python/clip_server.py')
+  const scriptPath = join(__dirname, '../../../python/clip_server.py')
 
   return new Promise((resolve, reject) => {
     const proc = spawn(pythonPath, [scriptPath])
