@@ -7,7 +7,7 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     build: {
       rollupOptions: {
-        external: ['vectordb']
+        external: ['@lancedb/lancedb']
       }
     }
   },

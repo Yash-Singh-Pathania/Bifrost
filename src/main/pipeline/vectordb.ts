@@ -1,4 +1,4 @@
-import { connect, Table, Connection } from 'vectordb'
+import { connect, Table, Connection } from '@lancedb/lancedb'
 import { join } from 'path'
 import { TranscriptChunk, FrameEmbedding, SearchResult } from '../../shared/types'
 
@@ -42,12 +42,16 @@ export class VectorStore {
     if (data.length === 0) return
 
     try {
-      // Try to open existing table
-      const table = await db.openTable('transcript_chunks')
-      await table.add(data)
-    } catch {
-      // Table doesn't exist, create it
-      await db.createTable('transcript_chunks', data)
+      const tableNames = await db.tableNames()
+      if (tableNames.includes('transcript_chunks')) {
+        const table = await db.openTable('transcript_chunks')
+        await table.add(data)
+      } else {
+        await db.createTable('transcript_chunks', data)
+      }
+    } catch (error) {
+      console.error('Failed to add transcript chunks:', error)
+      throw error
     }
   }
 
@@ -67,10 +71,16 @@ export class VectorStore {
     }))
 
     try {
-      const table = await db.openTable('video_frames')
-      await table.add(data)
-    } catch {
-      await db.createTable('video_frames', data)
+      const tableNames = await db.tableNames()
+      if (tableNames.includes('video_frames')) {
+        const table = await db.openTable('video_frames')
+        await table.add(data)
+      } else {
+        await db.createTable('video_frames', data)
+      }
+    } catch (error) {
+      console.error('Failed to add frame embeddings:', error)
+      throw error
     }
   }
 
@@ -81,22 +91,24 @@ export class VectorStore {
     const db = await this.getDb()
 
     try {
+      const tableNames = await db.tableNames()
+      if (!tableNames.includes('transcript_chunks')) return []
+
       const table = await db.openTable('transcript_chunks')
       const results = await table
         .search(queryEmbedding)
         .limit(limit)
-        .execute()
+        .toArray()
 
       return results.map((r: any) => ({
         id: r.id,
         timestamp: r.start_time,
         endTime: r.end_time,
         snippet: r.text,
-        score: 1 - (r._distance || 0), // Convert distance to similarity
+        score: 1 - (r._distance || 0),
         source: 'transcript' as const
       }))
     } catch {
-      // Table doesn't exist yet
       return []
     }
   }
@@ -108,11 +120,14 @@ export class VectorStore {
     const db = await this.getDb()
 
     try {
+      const tableNames = await db.tableNames()
+      if (!tableNames.includes('video_frames')) return []
+
       const table = await db.openTable('video_frames')
       const results = await table
         .search(queryEmbedding)
         .limit(limit)
-        .execute()
+        .toArray()
 
       return results.map((r: any) => ({
         id: r.id,
