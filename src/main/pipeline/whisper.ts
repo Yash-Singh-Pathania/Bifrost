@@ -32,7 +32,8 @@ class LocalWhisperProvider implements TranscriptionProvider {
 
   async transcribe(audioPath: string): Promise<TranscriptChunk[]> {
     const pythonPath = getPythonPath()
-    const scriptPath = join(__dirname, '../../../python/transcribe.py')
+    const pythonDir = process.env.PYTHON_DIR || join(__dirname, '../../../python')
+    const scriptPath = join(pythonDir, 'transcribe.py')
 
     return new Promise((resolve, reject) => {
       const proc = spawn(pythonPath, [

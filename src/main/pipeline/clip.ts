@@ -20,7 +20,8 @@ export async function embedFrames(
   settings: AppSettings
 ): Promise<FrameEmbedding[]> {
   const pythonPath = getPythonPath()
-  const scriptPath = join(__dirname, '../../../python/clip_server.py')
+  const pythonDir = process.env.PYTHON_DIR || join(__dirname, '../../../python')
+  const scriptPath = join(pythonDir, 'clip_server.py')
 
   return new Promise((resolve, reject) => {
     const proc = spawn(pythonPath, [scriptPath])
@@ -70,7 +71,8 @@ export async function embedTextWithClip(
   settings: AppSettings
 ): Promise<number[]> {
   const pythonPath = getPythonPath()
-  const scriptPath = join(__dirname, '../../../python/clip_server.py')
+  const pythonDir = process.env.PYTHON_DIR || join(__dirname, '../../../python')
+  const scriptPath = join(pythonDir, 'clip_server.py')
 
   return new Promise((resolve, reject) => {
     const proc = spawn(pythonPath, [scriptPath])
