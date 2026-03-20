@@ -30,9 +30,13 @@ function createWindow(): void {
     minWidth: 960,
     minHeight: 640,
     show: false,
+    frame: false,             // Frameless window
+    transparent: true,        // Physical transparency
+    vibrancy: 'fullscreen-ui',// macOS system-level blur
+    visualEffectState: 'followWindow',
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 16, y: 16 },
-    backgroundColor: '#FFFFFF',
+    trafficLightPosition: { x: 20, y: 20 },
+    backgroundColor: '#00000000', // Fully transparent background
     title: 'Bifrost',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

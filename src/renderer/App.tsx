@@ -21,6 +21,11 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [library, setLibrary] = useState<VideoLibraryEntry[]>([])
+  
+  // Spatial Panel States
+  const [isLibraryVisible, setIsLibraryVisible] = useState(true)
+  const [isSearchVisible, setIsSearchVisible] = useState(true)
+  
   const videoRef = useRef<VideoPlayerRef>(null)
 
   // Load library on mount
@@ -48,6 +53,10 @@ export default function App() {
         setLibrary(prev => [result.libraryEntry, ...prev])
       }
       setAppState('ready')
+      
+      // Auto-hide library and show search + video in immersive mode
+      setIsLibraryVisible(false)
+      setIsSearchVisible(true)
     })
 
     const unsubError = window.api.onProcessingError((err) => {
@@ -81,6 +90,9 @@ export default function App() {
     setCurrentEntry(entry)
     setResults([])
     setAppState('ready')
+    // Automatically enter immersive mode on select
+    setIsLibraryVisible(false)
+    setIsSearchVisible(true)
   }, [])
 
   // ── Delete from library ─────────────────────────────────
@@ -130,97 +142,138 @@ export default function App() {
   }, [])
 
   return (
-    <div className="app">
-      {/* ── Titlebar / drag region ── */}
-      <header className="titlebar">
-        <div className="titlebar-drag" />
-        <div className="titlebar-content">
-          <div className="titlebar-logo">
-            <span className="logo-icon">·</span>
-            <span className="logo-text">Bifrost</span>
+    <div className="spatial-app">
+      {/* ── Invisible Drag Region for Frameless Window ── */}
+      <div className="titlebar-drag-region" />
+
+      {/* ── Base Layer: Immersive Background ── */}
+      <main className="spatial-background-layer">
+        {/* Error overlay */}
+        {error && (
+          <div className="spatial-toast error-toast">
+            <span>⚠️ {error}</span>
+            <button className="icon-btn" onClick={() => setError(null)}>✕</button>
           </div>
-          <div className="titlebar-actions">
-            {appState === 'ready' && (
-              <button className="btn-ghost" onClick={handleReset}>
-                ← New Video
-              </button>
-            )}
-            <button
-              className="btn-ghost"
-              onClick={() => setShowSettings(!showSettings)}
-              title="Settings"
-            >
-              ⚙
-            </button>
-          </div>
-        </div>
-      </header>
+        )}
 
-      {/* ── Settings overlay ── */}
-      {showSettings && <Settings onClose={() => setShowSettings(false)} />}
-
-      {/* ── Main content ── */}
-      <div className="app-body">
-
-        {/* ── Sidebar: Library ── */}
-        <Library
-          entries={library}
-          currentId={currentEntry?.id}
-          onSelect={handleLibrarySelect}
-          onDelete={handleLibraryDelete}
-          onImport={handleImportClick}
-        />
-
-        {/* ── Main area ── */}
-        <main className="main-content">
-
-          {/* ── Error banner ── */}
-          {error && (
-            <div className="error-banner">
-              <span>⚠️ {error}</span>
-              <button onClick={() => setError(null)}>✕</button>
-            </div>
-          )}
-
-          {appState === 'idle' && (
+        {appState === 'idle' && (
+          <div className="idle-container">
             <DropZone
               onDrop={handleVideoDrop}
               onImportClick={() => window.api.openFileDialog()}
             />
-          )}
-          {appState === 'processing' && progress && (
-            <div className="processing-container">
-              <ProcessingStatus progress={progress} />
-            </div>
-          )}
-          {appState === 'ready' && currentEntry && (
-            <>
-              <div className="immersive-video-bg">
-                <VideoPlayer
-                  ref={videoRef}
-                  src={currentEntry.filePath}
-                />
-              </div>
+          </div>
+        )}
 
-              <div className="glass-search-panel">
-                <div className="glass-panel-header">
-                  <h2 className="glass-panel-title">Search Video</h2>
-                </div>
-                <div className="glass-panel-body">
-                  <SearchBar
-                    onSearch={handleSearch}
-                    isSearching={isSearching}
-                  />
-                  <SearchResults
-                    results={results}
-                    onResultClick={handleResultClick}
-                    isSearching={isSearching}
-                  />
-                </div>
-              </div>
-            </>
-          )}
-        </main>
+        {appState === 'processing' && progress && (
+          <div className="processing-container glass-material">
+            <ProcessingStatus progress={progress} />
+          </div>
+        )}
+
+        {appState === 'ready' && currentEntry && (
+          <div className="immersive-video-bg">
+            <VideoPlayer
+              ref={videoRef}
+              src={currentEntry.filePath}
+            />
+          </div>
+        )}
+      </main>
+
+      {/* ── Z-Layer 1: Floating Panels (Ornaments) ── */}
+      
+      {/* Settings Modal Component - usually centers itself */}
+      {showSettings && <Settings onClose={() => setShowSettings(false)} />}
+
+      {/* Library Sliding Glass Panel */}
+      <div className={`spatial-panel library-panel ${isLibraryVisible ? 'visible' : 'hidden'}`}>
+        <div className="glass-material panel-content">
+          <Library
+            entries={library}
+            currentId={currentEntry?.id}
+            onSelect={handleLibrarySelect}
+            onDelete={handleLibraryDelete}
+            onImport={handleImportClick}
+          />
+        </div>
+      </div>
+
+      {/* Search Floating Glass Panel */}
+      {appState === 'ready' && currentEntry && (
+        <div className={`spatial-panel search-panel ${isSearchVisible ? 'visible' : 'hidden'}`}>
+          <div className="glass-material panel-content flex-col">
+            <div className="glass-panel-header">
+              <h2 className="glass-panel-title">Semantic Search</h2>
+            </div>
+            <div className="glass-panel-body">
+              <SearchBar
+                onSearch={handleSearch}
+                isSearching={isSearching}
+              />
+              <SearchResults
+                results={results}
+                onResultClick={handleResultClick}
+                isSearching={isSearching}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Top Left Logo Ornament */}
+      <div className="spatial-logo-ornament glass-material-subtle">
+        <span className="logo-icon">·</span>
+        <span className="logo-text">Bifrost</span>
+      </div>
+
+      {/* ── Z-Layer 2: Bottom Toolbar Ornament ── */}
+      <div className="spatial-toolbar-ornament glass-material">
+        <button 
+          className={`toolbar-btn ${isLibraryVisible ? 'active' : ''}`}
+          onClick={() => setIsLibraryVisible(!isLibraryVisible)}
+          title="Toggle Library"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+          </svg>
+        </button>
+
+        {appState === 'ready' && (
+          <>
+            <div className="toolbar-divider" />
+            <button 
+              className={`toolbar-btn ${isSearchVisible ? 'active' : ''}`}
+              onClick={() => setIsSearchVisible(!isSearchVisible)}
+              title="Toggle Search"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </button>
+            <div className="toolbar-divider" />
+            <button className="toolbar-btn" onClick={handleReset} title="New Video">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+          </>
+        )}
+
+        <div className="toolbar-divider" />
+        <button 
+          className={`toolbar-btn ${showSettings ? 'active' : ''}`}
+          onClick={() => setShowSettings(!showSettings)}
+          title="Settings"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
       </div>
     </div>
   )
