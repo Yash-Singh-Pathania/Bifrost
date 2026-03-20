@@ -7,9 +7,6 @@ interface SearchResultsProps {
   isSearching: boolean
 }
 
-/**
- * Format seconds to MM:SS or HH:MM:SS
- */
 function formatTime(seconds: number): string {
   const hrs = Math.floor(seconds / 3600)
   const mins = Math.floor((seconds % 3600) / 60)
@@ -21,9 +18,6 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-/**
- * Relevance score bar
- */
 function ScoreBar({ score }: { score: number }) {
   const percentage = Math.round(score * 100)
   return (
@@ -67,11 +61,12 @@ export default function SearchResults({ results, onResultClick, isSearching }: S
         <span className="results-count">{results.length} result{results.length !== 1 ? 's' : ''}</span>
       </div>
       <div className="results-list">
-        {results.map((result) => (
+        {results.map((result, index) => (
           <button
-            key={result.id}
+            key={result.id || `result-${index}`}
             className="result-card"
             onClick={() => onResultClick(result)}
+            type="button"
           >
             <div className="result-left">
               <span className={`result-source-badge ${result.source}`}>
@@ -84,7 +79,11 @@ export default function SearchResults({ results, onResultClick, isSearching }: S
               <ScoreBar score={result.score} />
             </div>
             <div className="result-right">
-              <span className="result-play-icon">▶</span>
+              <span className="result-play-icon">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+              </span>
             </div>
           </button>
         ))}

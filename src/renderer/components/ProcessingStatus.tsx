@@ -5,14 +5,14 @@ interface ProcessingStatusProps {
   progress: ProcessingProgress
 }
 
-const STAGES: { key: ProcessingStage; label: string; icon: string }[] = [
-  { key: 'extracting-audio',  label: 'Extracting Audio',   icon: '○' },
-  { key: 'transcribing',      label: 'Transcribing',       icon: '○' },
-  { key: 'extracting-frames', label: 'Extracting Frames',  icon: '○' },
-  { key: 'embedding-text',    label: 'Embedding Text',     icon: '○' },
-  { key: 'embedding-frames',  label: 'Embedding Frames',   icon: '○' },
-  { key: 'storing',           label: 'Storing in DB',      icon: '○' },
-  { key: 'done',              label: 'Done',               icon: '○' },
+const STAGES: { key: ProcessingStage; label: string; step: number }[] = [
+  { key: 'extracting-audio',  label: 'Extracting Audio',   step: 1 },
+  { key: 'transcribing',      label: 'Transcribing',       step: 2 },
+  { key: 'extracting-frames', label: 'Extracting Frames',  step: 3 },
+  { key: 'embedding-text',    label: 'Embedding Text',     step: 4 },
+  { key: 'embedding-frames',  label: 'Embedding Frames',   step: 5 },
+  { key: 'storing',           label: 'Storing in DB',      step: 6 },
+  { key: 'done',              label: 'Done',               step: 7 },
 ]
 
 function getStageIndex(stage: ProcessingStage): number {
@@ -41,10 +41,17 @@ export default function ProcessingStatus({ progress }: ProcessingStatusProps) {
 
           return (
             <div key={stage.key} className={`stage-item stage-${status}`}>
-              <span className="stage-icon">{stage.icon}</span>
+              <span className="stage-icon">
+                {status === 'complete' ? (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                ) : (
+                  <span className="stage-step-number">{stage.step}</span>
+                )}
+              </span>
               <span className="stage-label">{stage.label}</span>
               {status === 'active' && <span className="stage-spinner" />}
-              {status === 'complete' && <span className="stage-check">✓</span>}
             </div>
           )
         })}

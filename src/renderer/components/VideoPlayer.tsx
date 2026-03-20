@@ -18,11 +18,16 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src }, ref) 
         videoEl.current.play().catch(() => {})
       }
     }
-  }))
+  }), [])
 
-  // Handle local:// protocol for local files
-  // Using 'local://' instead of 'file://' routes through Electron's net.fetch
-  // which properly supports HTTP byte-range requests for seamless video scrubbing.
+  // When source changes, load the new source
+  useEffect(() => {
+    if (videoEl.current) {
+      videoEl.current.load()
+    }
+  }, [src])
+
+  // Use local:// protocol for local files
   const videoSrc = src.startsWith('/') ? `local://${src}` : src
 
   return (
@@ -31,6 +36,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src }, ref) 
         ref={videoEl}
         src={videoSrc}
         controls
+        preload="auto"
         className="video-element"
       />
     </div>
