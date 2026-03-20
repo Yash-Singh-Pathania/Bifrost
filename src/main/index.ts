@@ -1,5 +1,6 @@
 import { app, BrowserWindow, shell, protocol, net } from 'electron'
 import { join } from 'path'
+import { createReadStream, statSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { registerIpcHandlers } from './ipc'
 import { DEFAULT_SETTINGS } from '../shared/types'
@@ -65,12 +66,67 @@ DEFAULT_SETTINGS.dataDir = join(app.getPath('userData'), 'data')
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.videosearch.app')
 
-  // Handle the 'local://' protocol so the renderer can fetch system files safely
+  // Handle the 'local://' protocol with proper Range request support for video seeking
   protocol.handle('local', (request) => {
-    // request.url is something like "local:///Users/yash/..."
-    // We convert it to "file:///Users/yash/..." and fetch it over the native Node.js net module
-    const fileUrl = request.url.replace('local://', 'file://')
-    return net.fetch(fileUrl)
+    // Convert local:///path → /path
+    let filePath = decodeURIComponent(request.url.replace('local://', ''))
+    // On macOS/Linux the path starts with /; on Windows it might start with /C:
+    // Remove leading slash on Windows drives
+    if (process.platform === 'win32' && filePath.match(/^\/[A-Za-z]:/)) {
+      filePath = filePath.slice(1)
+    }
+
+    try {
+      const stat = statSync(filePath)
+      const fileSize = stat.size
+
+      // Determine MIME type from extension
+      const ext = filePath.split('.').pop()?.toLowerCase() || ''
+      const mimeTypes: Record<string, string> = {
+        mp4: 'video/mp4', mkv: 'video/x-matroska', webm: 'video/webm',
+        mov: 'video/quicktime', avi: 'video/x-msvideo', m4v: 'video/mp4',
+        wmv: 'video/x-ms-wmv', wav: 'audio/wav', mp3: 'audio/mpeg'
+      }
+      const contentType = mimeTypes[ext] || 'application/octet-stream'
+
+      // Check for Range header (critical for video seeking)
+      const rangeHeader = request.headers.get('Range')
+
+      if (rangeHeader) {
+        // Parse "bytes=START-END"
+        const match = rangeHeader.match(/bytes=(\d+)-(\d*)/)
+        if (match) {
+          const start = parseInt(match[1], 10)
+          const end = match[2] ? parseInt(match[2], 10) : fileSize - 1
+          const chunkSize = end - start + 1
+
+          const stream = createReadStream(filePath, { start, end })
+
+          return new Response(stream as any, {
+            status: 206,
+            headers: {
+              'Content-Type': contentType,
+              'Content-Length': String(chunkSize),
+              'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+              'Accept-Ranges': 'bytes'
+            }
+          })
+        }
+      }
+
+      // No Range header — return the full file
+      const stream = createReadStream(filePath)
+      return new Response(stream as any, {
+        status: 200,
+        headers: {
+          'Content-Type': contentType,
+          'Content-Length': String(fileSize),
+          'Accept-Ranges': 'bytes'
+        }
+      })
+    } catch (err) {
+      return new Response('File not found', { status: 404 })
+    }
   })
 
   // Default open/close behaviour for dev tools
