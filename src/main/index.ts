@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell, protocol, net } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { registerIpcHandlers } from './ipc'
@@ -6,6 +6,19 @@ import { DEFAULT_SETTINGS } from '../shared/types'
 
 // Expose the real project root to bundled pipeline modules
 process.env.PYTHON_DIR = join(app.getAppPath(), 'python')
+
+// Register a custom protocol to safely load local files
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'local',
+    privileges: {
+      bypassCSP: true,
+      secure: true,
+      supportFetchAPI: true,
+      stream: true
+    }
+  }
+])
 
 let mainWindow: BrowserWindow | null = null
 
@@ -51,6 +64,14 @@ DEFAULT_SETTINGS.dataDir = join(app.getPath('userData'), 'data')
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.videosearch.app')
+
+  // Handle the 'local://' protocol so the renderer can fetch system files safely
+  protocol.handle('local', (request) => {
+    // request.url is something like "local:///Users/yash/..."
+    // We convert it to "file:///Users/yash/..." and fetch it over the native Node.js net module
+    const fileUrl = request.url.replace('local://', 'file://')
+    return net.fetch(fileUrl)
+  })
 
   // Default open/close behaviour for dev tools
   app.on('browser-window-created', (_, window) => {

@@ -20,8 +20,10 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({ src }, ref) 
     }
   }))
 
-  // Handle file:// protocol for local files
-  const videoSrc = src.startsWith('/') ? `file://${src}` : src
+  // Handle local:// protocol for local files
+  // Using 'local://' instead of 'file://' routes through Electron's net.fetch
+  // which properly supports HTTP byte-range requests for seamless video scrubbing.
+  const videoSrc = src.startsWith('/') ? `local://${src}` : src
 
   return (
     <div className="video-player">
