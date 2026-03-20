@@ -12,11 +12,11 @@
 
   /* Typography / Vibrancy */
   --text-primary: #FFFFFF;
-  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-secondary: rgba(255, 255, 255, 0.55);
   --text-muted: rgba(255, 255, 255, 0.3);
 
   /* Borders & Dividers */
-  --border: rgba(255, 255, 255, 0.15);
+  --border: rgba(255, 255, 255, 0.12);
   --border-light: rgba(255, 255, 255, 0.08);
 
   /* Feedback */
@@ -27,7 +27,7 @@
   /* Shadows (Z-Axis Depth) */
   --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 16px 32px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  --shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.3);
 
   /* Nested Radii */
   --radius-sm: 8px;
@@ -130,16 +130,16 @@ body {
 
 /* ── Glass Materials ───────────────────────────────────── */
 .glass-material {
-  background: rgba(40, 40, 40, 0.4);
+  background: rgba(30, 30, 30, 0.45);
   backdrop-filter: blur(40px) saturate(200%);
   -webkit-backdrop-filter: blur(40px) saturate(200%);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   border-radius: var(--radius-xl);
 }
 
 .glass-material-subtle {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(40, 40, 40, 0.3);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -301,16 +301,17 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--border-light);
-  padding: 16px;
-  border-radius: var(--radius-lg);
-  transition: all 0.2s;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  padding: 12px 18px;
+  border-radius: var(--radius-pill); /* Classic Spotlight rounded */
+  transition: all 0.3s var(--ease);
 }
 
 .search-box:focus-within {
   background: rgba(0, 0, 0, 0.4);
-  border-color: rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
 }
 
 .search-input {
@@ -375,18 +376,23 @@ body {
   gap: 12px;
   padding: 16px;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid transparent;
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s var(--ease);
   color: var(--text-primary);
   text-align: left;
 }
 
 .result-card:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: scale(1.02);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: scale(1.01);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.result-card:active {
+  transform: scale(0.98);
 }
 
 .result-source-badge {
