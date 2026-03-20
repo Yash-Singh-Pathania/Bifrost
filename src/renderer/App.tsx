@@ -182,34 +182,43 @@ export default function App() {
             </div>
           )}
 
-          {/* ── State: Idle → Show DropZone ── */}
           {appState === 'idle' && (
-            <DropZone onDrop={handleVideoDrop} onImportClick={handleImportClick} />
+            <DropZone
+              onDrop={handleVideoDrop}
+              onImportClick={() => window.api.openFileDialog()}
+            />
           )}
-
-          {/* ── State: Processing ── */}
-          {appState === 'processing' && (
+          {appState === 'processing' && progress && (
             <div className="processing-container">
-              <h2 className="processing-title">Indexing {videoName}</h2>
-              {progress && <ProcessingStatus progress={progress} />}
+              <ProcessingStatus progress={progress} />
             </div>
           )}
-
-          {/* ── State: Ready → Player + Search ── */}
-          {appState === 'ready' && (
-            <div className="search-layout">
-              <div className="video-column">
-                <VideoPlayer ref={videoRef} src={videoPath} />
-              </div>
-              <div className="search-column">
-                <SearchBar onSearch={handleSearch} isSearching={isSearching} />
-                <SearchResults
-                  results={results}
-                  onResultClick={handleResultClick}
-                  isSearching={isSearching}
+          {appState === 'ready' && currentEntry && (
+            <>
+              <div className="immersive-video-bg">
+                <VideoPlayer
+                  ref={videoRef}
+                  src={currentEntry.filePath}
                 />
               </div>
-            </div>
+
+              <div className="glass-search-panel">
+                <div className="glass-panel-header">
+                  <h2 className="glass-panel-title">Search Video</h2>
+                </div>
+                <div className="glass-panel-body">
+                  <SearchBar
+                    onSearch={handleSearch}
+                    isSearching={isSearching}
+                  />
+                  <SearchResults
+                    results={results}
+                    onResultClick={handleResultClick}
+                    isSearching={isSearching}
+                  />
+                </div>
+              </div>
+            </>
           )}
         </main>
       </div>

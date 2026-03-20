@@ -69,8 +69,16 @@ export function extractFrames(
         const frames = readdirSync(outputDir)
           .filter(f => f.startsWith('frame_') && f.endsWith('.jpg'))
           .sort()
-          .map(f => join(outputDir, f))
-        resolve(frames)
+
+        if (frames.length > 0) {
+          // Copy the first frame as the video thumbnail
+          const firstFramePath = join(outputDir, frames[0])
+          const thumbPath = join(outputDir, '../thumb.jpg')
+          const { copyFileSync } = require('fs')
+          copyFileSync(firstFramePath, thumbPath)
+        }
+
+        resolve(frames.map(f => join(outputDir, f)))
       })
       .on('error', (err) => reject(new Error(`Frame extraction failed: ${err.message}`)))
       .run()

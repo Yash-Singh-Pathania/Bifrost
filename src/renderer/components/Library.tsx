@@ -68,9 +68,22 @@ export default function Library({ entries, currentId, onSelect, onDelete, onImpo
               }}
             >
               {/* Thumbnail placeholder with extension badge */}
-              <div className="library-thumb">
-                <span className="library-ext">{entry.fileName.split('.').pop()?.toUpperCase()}</span>
-              </div>
+                <div className="library-thumb">
+                  <img
+                    src={`local://${entry.dataDir}/thumb.jpg`}
+                    alt=""
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      borderRadius: 'inherit'
+                    }}
+                    onError={(e) => {
+                      // Fallback if thumb.jpg doesn't exist
+                      (e.currentTarget.parentElement as HTMLElement).innerHTML = `<span class="library-ext">${entry.fileName.split('.').pop()?.toUpperCase() || ''}</span>`
+                    }}
+                  />
+                </div>
 
               {/* Info */}
               <div className="library-info">
