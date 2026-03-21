@@ -18,6 +18,7 @@ export default function App() {
   const [progress, setProgress] = useState<ProcessingProgress | null>(null)
   const [results, setResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [hasSearched, setHasSearched] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [library, setLibrary] = useState<VideoLibraryEntry[]>([])
@@ -89,6 +90,7 @@ export default function App() {
     setVideoName(entry.fileName)
     setCurrentEntry(entry)
     setResults([])
+    setHasSearched(false)
     setAppState('ready')
     // Automatically enter immersive mode on select
     setIsLibraryVisible(false)
@@ -105,6 +107,7 @@ export default function App() {
       setVideoPath('')
       setVideoName('')
       setResults([])
+      setHasSearched(false)
     }
   }, [currentEntry])
 
@@ -112,8 +115,10 @@ export default function App() {
   const handleSearch = useCallback(async (query: string) => {
     if (!query.trim() || !currentEntry) {
       setResults([])
+      setHasSearched(false)
       return
     }
+    setHasSearched(true)
     setIsSearching(true)
     try {
       const searchResults = await window.api.search(query, currentEntry.dataDir)
@@ -136,6 +141,7 @@ export default function App() {
     setVideoPath('')
     setVideoName('')
     setResults([])
+    setHasSearched(false)
     setProgress(null)
     setError(null)
     setCurrentEntry(null)
@@ -201,21 +207,33 @@ export default function App() {
 
       {/* Search Floating Glass Panel */}
       {appState === 'ready' && currentEntry && (
-        <div className={`spatial-panel search-panel ${isSearchVisible ? 'visible' : 'hidden'}`}>
+        <div className={`spatial-panel search-panel ${isSearchVisible ? 'visible' : 'hidden'} ${isSearching || hasSearched || results.length > 0 ? 'has-results' : 'compact'}`}>
           <div className="glass-material panel-content flex-col">
             <div className="glass-panel-header">
               <h2 className="glass-panel-title">Semantic Search</h2>
+              <button 
+                className="glass-panel-close"
+                onClick={() => setIsSearchVisible(false)}
+                title="Hide Search"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
             </div>
             <div className="glass-panel-body">
               <SearchBar
                 onSearch={handleSearch}
                 isSearching={isSearching}
               />
-              <SearchResults
-                results={results}
-                onResultClick={handleResultClick}
-                isSearching={isSearching}
-              />
+              {(isSearching || hasSearched) && (
+                <SearchResults
+                  results={results}
+                  onResultClick={handleResultClick}
+                  isSearching={isSearching}
+                />
+              )}
             </div>
           </div>
         </div>

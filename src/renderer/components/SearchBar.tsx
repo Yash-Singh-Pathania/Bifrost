@@ -56,11 +56,6 @@ export default function SearchBar({ onSearch, isSearching }: SearchBarProps) {
         />
         {isSearching && <div className="search-spinner" />}
       </div>
-      <div className="search-hints">
-        <span className="hint-badge">🎤 "pricing discussion"</span>
-        <span className="hint-badge">👁 "red car"</span>
-        <span className="hint-badge">🎤 "conclusion"</span>
-      </div>
     </div>
   )
 }

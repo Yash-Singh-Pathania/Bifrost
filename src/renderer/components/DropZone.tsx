@@ -50,35 +50,36 @@ export default function DropZone({ onDrop, onImportClick }: DropZoneProps) {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={onImportClick}
-        style={{ cursor: 'pointer' }}
       >
         <div className="dropzone-content">
-          <div className="dropzone-icon">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
+          <div className="dropzone-icon-shell">
+            <div className="dropzone-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+            </div>
           </div>
-          <h2 className="dropzone-title">Drop your video here</h2>
+          <h2 className="dropzone-title">Import your video</h2>
           <p className="dropzone-subtitle">
-            MP4, MKV, WebM, MOV, AVI — any video file
+            Drag and drop a file here, or choose one from your computer.
           </p>
-          <div className="dropzone-hint">
-            <span className="hint-dot" />
-            We'll transcribe the audio and index every frame
+          <div className="dropzone-actions" onClick={e => e.stopPropagation()}>
+            <button
+              className="dropzone-browse-btn"
+              onClick={onImportClick}
+            >
+              Browse Files
+            </button>
+            <span className="dropzone-drag-label">or drop video here</span>
           </div>
-          <button
-            className="btn-primary dropzone-browse-btn"
-            onClick={e => { e.stopPropagation(); onImportClick() }}
-            style={{ marginTop: 20 }}
-          >
-            Browse Files
-          </button>
+          <div className="dropzone-meta">
+            <span>Supports {ACCEPTED_EXTENSIONS.join(', ')}</span>
+            <span className="dropzone-meta-dot">•</span>
+            <span>Audio + visual indexing enabled</span>
+          </div>
         </div>
-
-        {/* Animated border */}
-        <div className="dropzone-border" />
       </div>
     </div>
   )

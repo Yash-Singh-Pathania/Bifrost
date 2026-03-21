@@ -95,15 +95,6 @@ function formatTimeRange(start: number, end: number): string {
   return `${formatTime(start)} – ${formatTime(end)}`
 }
 
-function ScoreBar({ score }: { score: number }) {
-  const percentage = Math.round(score * 100)
-  return (
-    <div className="score-bar">
-      <div className="score-fill" style={{ width: `${percentage}%` }} />
-    </div>
-  )
-}
-
 // ── Component ───────────────────────────────────────────────
 
 export default function SearchResults({ results, onResultClick, isSearching }: SearchResultsProps) {
@@ -152,18 +143,20 @@ export default function SearchResults({ results, onResultClick, isSearching }: S
             onClick={() => onResultClick(cluster.best)}
             type="button"
           >
-            <div className="result-left">
-              <span className={`result-source-badge ${cluster.source}`}>
-                {cluster.source === 'transcript' ? 'TXT' : 'IMG'}
-              </span>
-              <span className="result-timestamp">
-                {formatTimeRange(cluster.startTime, cluster.endTime)}
-              </span>
-            </div>
+            {cluster.source === 'visual' && cluster.best.framePath && (
+              <div className="result-thumbnail">
+                <img src={`file://${cluster.best.framePath}`} alt="Frame" />
+              </div>
+            )}
+            {cluster.source === 'transcript' && (
+              <div className="result-thumbnail result-thumbnail-placeholder">TXT</div>
+            )}
             <div className="result-middle">
               <p className="result-snippet">{cluster.snippet}</p>
               <div className="result-meta-row">
-                <ScoreBar score={cluster.score} />
+                <span className="result-timestamp">
+                  {formatTimeRange(cluster.startTime, cluster.endTime)}
+                </span>
                 {cluster.results.length > 1 && (
                   <span className="result-hit-count">
                     {cluster.results.length} hits
