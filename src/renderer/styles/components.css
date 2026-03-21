@@ -1,0 +1,186 @@
+/* ============================================================
+   Components — Dropzone, Processing, Toasts
+   ============================================================ */
+
+/* Error Toasts */
+.spatial-toast {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 69, 58, 0.2);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 69, 58, 0.5);
+  padding: 12px 24px;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 200;
+}
+
+/* Idle & Processing Containers */
+.idle-container, .processing-container {
+  width: 460px;
+  max-width: 90vw;
+  padding: 36px;
+  z-index: 10;
+}
+
+/* Dropzone */
+.dropzone-container {
+  width: 100%;
+}
+
+.dropzone {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(32px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 22px;
+  padding: 28px 24px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.24s var(--ease);
+  box-shadow: var(--shadow-md);
+}
+
+.dropzone:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.26);
+  transform: translateY(-1px);
+}
+
+.dropzone-active {
+  border-color: rgba(10, 132, 255, 0.65);
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2), var(--shadow-md);
+  background: rgba(10, 132, 255, 0.08);
+}
+
+.dropzone-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dropzone-icon-shell {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.dropzone-icon {
+  color: var(--text-primary);
+}
+
+.dropzone-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 2px 0 0;
+}
+
+.dropzone-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.dropzone-actions {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dropzone-browse-btn {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--text-primary);
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+
+.dropzone-browse-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.32);
+}
+
+.dropzone-drag-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dropzone-meta {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.dropzone-meta-dot {
+  opacity: 0.55;
+}
+
+/* Processing */
+.processing-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.progress-bar-track {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  margin-bottom: 32px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  background: #FFFFFF;
+  height: 100%;
+}
+
+.stage-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+}
+
+.stage-step-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  border: 2px solid var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.stage-active .stage-step-number {
+  border-color: #FFFFFF;
+  background: #FFFFFF;
+  color: #000;
+}
+
+.stage-active {
+  background: rgba(255, 255, 255, 0.15);
+}

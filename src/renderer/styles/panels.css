@@ -1,0 +1,107 @@
+/* ============================================================
+   Panels — Library, Search, and Logo Ornament
+   ============================================================ */
+
+/* Spatial Floating Panels */
+.spatial-panel {
+  position: absolute;
+  top: 64px;
+  bottom: 100px;
+  width: 380px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-app-region: no-drag;
+}
+
+.spatial-panel .panel-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  height: 100%;
+}
+
+.spatial-panel.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.95);
+}
+
+.spatial-panel.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+}
+
+/* Library Panel (Left) */
+.library-panel {
+  left: 24px;
+}
+
+.library-panel.hidden {
+  transform: translateX(-40px) scale(0.95);
+}
+
+/* Search Panel (Right) */
+.search-panel {
+  right: 24px;
+  width: 360px;
+}
+
+.search-panel.hidden {
+  transform: translateX(40px) scale(0.95);
+}
+
+/* Compact mode when no search results */
+.search-panel.compact {
+  height: auto;
+  max-height: 180px;
+  bottom: auto;
+}
+
+.search-panel.compact .panel-content {
+  min-height: 0;
+  flex: none;
+}
+
+.search-panel.compact .glass-panel-body {
+  flex: none;
+}
+
+/* Expanded mode with results */
+.search-panel.has-results {
+  height: auto;
+  max-height: calc(100vh - 164px);
+  bottom: 100px;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+/* Top Left Logo Ornament */
+.spatial-logo-ornament {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 100;
+  -webkit-app-region: drag;
+}
+
+.spatial-logo-ornament .logo-icon {
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.spatial-logo-ornament .logo-text {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}

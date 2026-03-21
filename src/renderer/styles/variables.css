@@ -1,0 +1,43 @@
+/* ============================================================
+   Bifrost — CSS Variables & Design Tokens
+   ============================================================ */
+
+:root {
+  /* Spatial Neutrals */
+  --bg-main: transparent;
+  --bg-hover: rgba(255, 255, 255, 0.15);
+  --bg-active: rgba(255, 255, 255, 0.25);
+
+  /* Typography / Vibrancy */
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255, 255, 255, 0.55);
+  --text-muted: rgba(255, 255, 255, 0.3);
+
+  /* Borders & Dividers */
+  --border: rgba(255, 255, 255, 0.12);
+  --border-light: rgba(255, 255, 255, 0.08);
+
+  /* Feedback */
+  --success: #32D74B;
+  --warning: #FF453A;
+  --info: #0A84FF;
+
+  /* Shadows (Z-Axis Depth) */
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 16px 32px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.3);
+
+  /* Nested Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 9999px;
+
+  /* Actions */
+  --primary: rgba(255, 255, 255, 0.2);
+  --primary-light: rgba(255, 255, 255, 0.3);
+  --primary-dark: rgba(255, 255, 255, 0.1);
+
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
