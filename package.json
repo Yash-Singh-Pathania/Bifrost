@@ -1,7 +1,8 @@
 {
-  "name": "video-search",
+  "name": "bifrost",
   "version": "1.0.0",
-  "description": "Semantic video search engine — find any moment by text or visual query",
+  "description": "Semantic video search — find any moment by what was said or shown",
+  "author": "Yash Singh Pathania",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -37,8 +38,9 @@
     "vite": "^5.4.0"
   },
   "build": {
-    "appId": "com.videosearch.app",
-    "productName": "Video Search",
+    "electronVersion": "31.7.7",
+    "appId": "com.bifrost.app",
+    "productName": "Bifrost",
     "directories": {
       "output": "release"
     },

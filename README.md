@@ -1,129 +1,93 @@
-# Video Search 🔍🎬
+# Bifrost
 
-**Semantic video search engine** — find any moment in a video by what was said or what was shown. Like "Ctrl+F" for video content.
+**Semantic video search** — find any moment by what was said or what was shown. Like Ctrl+F for video.
 
-> Drop a video → we transcribe the audio and index every frame → search by text or visual content → click to jump to that moment.
+> Import a video. Bifrost transcribes the audio and indexes every frame. Then search by meaning — not just keywords — and click any result to jump straight to that moment.
 
 ## Features
 
-- 🎤 **Transcript Search** — Find moments by what was _said_ (powered by Whisper)
-- 👁 **Visual Search** — Find moments by what was _shown_ (powered by CLIP)
-- 🔒 **Fully Local & Free** — All processing runs on your machine via Ollama. No API keys needed.
-- 🔄 **Swappable Providers** — Clean adapter pattern lets you plug in OpenAI, Gemini, etc. when needed
-- 🖥 **Cross-Platform** — Electron-based app runs on Mac, Windows, and Linux
-- 💾 **Embedded Vector DB** — LanceDB stores everything locally, no server required
+- **Transcript search** — find moments by what was *said* (Whisper)
+- **Visual search** — find moments by what was *shown* (CLIP)
+- **Fully local** — all processing runs on your machine, nothing leaves your device
+- **Free** — powered by Ollama, no API keys needed
+- **Cross-platform** — macOS, Windows, Linux
 
-## Quick Start
+## Install
 
 ### Prerequisites
 
-- **Node.js** 18+
-- **Python** 3.10+
-- **ffmpeg** — `brew install ffmpeg` (Mac) / `apt install ffmpeg` (Linux)
-- **Ollama** — [Install from ollama.ai](https://ollama.ai)
+| Dependency | Install |
+|---|---|
+| **Node.js** 18+ | [nodejs.org](https://nodejs.org) |
+| **Python** 3.10+ | [python.org](https://python.org) |
+| **ffmpeg** | `brew install ffmpeg` (Mac) / `apt install ffmpeg` (Linux) |
+| **Ollama** | [ollama.ai](https://ollama.ai) |
 
 ### Setup
 
 ```bash
-# 1. Install Node.js dependencies
+git clone https://github.com/YashSingPathania/Bifrost.git
+cd Bifrost
+
+# Install dependencies
 npm install
 
-# 2. Set up Python venv + install ML dependencies
+# Set up Python ML environment
 npm run setup:python
 
-# 3. Pull the embedding model (make sure Ollama is running)
+# Pull the embedding model (Ollama must be running)
 ollama pull nomic-embed-text
 
-# 4. Start the app
+# Start the app
 npm run dev
 ```
 
-### How It Works
+### Pre-built Downloads
+
+Download the latest release for your platform from the [Releases](https://github.com/YashSingPathania/Bifrost/releases) page.
+
+> After installing the DMG/EXE/AppImage, you still need **ffmpeg** and **Ollama** installed on your system.
+
+## How It Works
 
 ```
 Video File
-    │
-    ├─── Audio → Whisper → Transcript chunks + timestamps
-    │                              │
-    │                         Text embeddings (Ollama)
-    │
-    └─── Frames (1 per 2 sec) → CLIP → Frame embeddings
-                                         │
+    |
+    +--- Audio --> Whisper --> Transcript chunks + timestamps
+    |                              |
+    |                         Text embeddings (Ollama)
+    |
+    +--- Frames (1/2s) --> CLIP --> Frame embeddings
+                                         |
                                     LanceDB (local)
-                                         │
-                   Search query ─────────┘
-                         │
-                    Merged results → Click to seek
+                                         |
+                   Search query ---------+
+                         |
+                    Merged results --> Click to seek
 ```
 
-## Architecture
+## Stack
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| Shell | Electron | Cross-platform desktop app |
-| UI | React + Vite | Video player, search, settings |
-| Transcription | faster-whisper (Python venv) | Audio → timestamped text |
-| Visual Embeddings | CLIP ViT-B/32 (Python venv) | Frames → vectors |
-| Text Embeddings | Ollama (nomic-embed-text) | Text → vectors |
-| Vector DB | LanceDB (embedded) | Store & search embeddings |
-| Audio/Video | ffmpeg | Extract audio & frames |
-
-## Project Structure
-
-```
-src/
-├── main/               # Electron main process
-│   ├── index.ts         # App lifecycle, window
-│   ├── ipc.ts           # IPC handlers (pipeline orchestration)
-│   └── pipeline/        # Backend processing
-│       ├── ffmpeg.ts    # Audio/frame extraction
-│       ├── whisper.ts   # Transcription adapter
-│       ├── clip.ts      # CLIP sidecar communication
-│       ├── embeddings.ts # Text embedding adapter (Ollama/OpenAI)
-│       └── vectordb.ts  # LanceDB wrapper
-├── preload/
-│   └── index.ts         # Secure IPC bridge
-├── renderer/            # React UI
-│   ├── App.tsx          # Main app + state management
-│   ├── App.css          # Dark glassmorphism theme
-│   └── components/      # UI components
-│       ├── DropZone.tsx
-│       ├── VideoPlayer.tsx
-│       ├── SearchBar.tsx
-│       ├── SearchResults.tsx
-│       ├── ProcessingStatus.tsx
-│       └── Settings.tsx
-└── shared/
-    └── types.ts         # Shared TypeScript types (IPC contract)
-
-python/
-├── clip_server.py       # CLIP embedding sidecar
-├── transcribe.py        # Whisper transcription script
-├── requirements.txt     # Python dependencies
-└── setup.sh             # Venv bootstrap script
-```
+| Layer | Technology |
+|---|---|
+| Shell | Electron |
+| UI | React + Vite |
+| Transcription | faster-whisper |
+| Visual embeddings | CLIP ViT-B/32 |
+| Text embeddings | Ollama (nomic-embed-text) |
+| Vector DB | LanceDB (embedded) |
+| Audio/Video | ffmpeg |
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start in development mode with HMR |
+| Command | What it does |
+|---|---|
+| `npm run dev` | Start in dev mode with HMR |
 | `npm run build` | Build production bundles |
-| `npm run setup:python` | Create Python venv and install ML deps |
-| `npm run package:mac` | Package as .dmg for macOS |
-| `npm run package:win` | Package as .exe for Windows |
-| `npm run package:linux` | Package as AppImage for Linux |
-
-## Settings
-
-The app supports two modes:
-
-| Mode | Provider | Cost | Privacy |
-|------|----------|------|---------|
-| **Local (default)** | Ollama + Whisper + CLIP | Free | 100% on-device |
-| **Cloud** | OpenAI APIs | ~$0.002/hr video | Transcript sent to API |
-
-Configure via the ⚙ settings panel in the app.
+| `npm run setup:python` | Set up Python venv + ML deps |
+| `npm run package:mac` | Package as .dmg |
+| `npm run package:win` | Package as .exe |
+| `npm run package:linux` | Package as AppImage |
 
 ## License
 

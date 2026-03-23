@@ -68,7 +68,7 @@ function createWindow(): void {
 DEFAULT_SETTINGS.dataDir = join(app.getPath('userData'), 'data')
 
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.videosearch.app')
+  electronApp.setAppUserModelId('com.bifrost.app')
 
   // Handle the 'local://' protocol with proper Range request support for video seeking
   protocol.handle('local', (request) => {
