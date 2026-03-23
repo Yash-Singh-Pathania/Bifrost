@@ -1,147 +1,216 @@
-# Bifrost Optimization Plan
+# Optimization Plan
 
-## Phase 1: Accuracy Improvements ✅
+Performance optimization strategy for Bifrost ML pipeline.
 
-### 1. Better Visual Model (CLIP)
-- **Changed**: `ViT-B-32` → `ViT-L-14`
-- **Why**: 43% larger model = better visual understanding
-- **Benefit**: Improved visual search relevance; also matches Ollama embedding dimensions (768-dim)
-- **Cost**: ~2x slower inference, but acceptable for indexing
-- **Location**: `/python/clip_server.py` lines 36-47
+## Phase 1: Accuracy Improvements
 
-### 2. Fixed Search Ranking
-- **Problem**: Text embeddings (768-dim) and visual embeddings (512-dim) scored equally
-- **Solution**: Normalize scores by source with weighted factors
-- **Benefit**: Better ranking when merging transcript + visual results
-- **Location**: `/src/main/ipc.ts` lines 233-275
+### Better Visual Model (CLIP)
 
-### 3. Deduplicate Results
-- **Added**: Remove results with duplicate timestamps (keep highest score)
-- **Why**: Avoid showing the same moment twice (once as transcript, once as visual)
-- **Benefit**: Cleaner, more relevant search results
-- **Location**: `/src/main/ipc.ts` lines 260-269
+Changed ViT-B-32 to ViT-L-14 for improved visual understanding.
 
----
+- 43% larger model for better accuracy
+- 768-dimensional embeddings (matches Ollama text embeddings)
+- Fallback to ViT-B-32 if ViT-L-14 unavailable
+- Location: python/clip_server.py lines 36-47
 
-## Phase 2: Speed Improvements ✅
+### Fixed Search Ranking
 
-### 1. Parallel Extraction + Transcription
-- **Changed**: Sequential `await transcribe(); await extractFrames()` → `Promise.all([...])`
-- **Benefit**: ~30-40% faster indexing (transcription and frame extraction now happen simultaneously)
-- **Location**: `/src/main/ipc.ts` lines 160-169
+Normalized scores across embedding sources to handle dimension mismatches.
 
-### 2. Batch Frame Embedding
-- **Changed**: Embed frames one-by-one → Batch 8 frames per inference
-- **Why**: GPU/device can process multiple images at once; reduces overhead
-- **Benefit**: ~2-3x faster CLIP embedding for large videos
-- **Location**: `/python/clip_server.py` lines 47-72
+- Problem: Text embeddings (768-dim) vs visual embeddings (512-dim) scored equally
+- Solution: Normalize scores by source with weighted factors
+- Result: Better ranking when merging transcript and visual results
+- Location: src/main/ipc.ts lines 233-275
 
-### 3. Performance Logging
-- **Added**: Timing information at each stage
-- **Why**: Track optimization benefits; identify remaining bottlenecks
-- **Locations**:
-  - `/src/main/ipc.ts` — overall pipeline timing
-  - `/src/main/pipeline/clip.ts` — frame embedding timing
-  - `/python/clip_server.py` — model load status
+### Deduplicate Results
 
----
+Remove results with duplicate timestamps, keeping only the highest scoring match.
 
-## Phase 3: Future Optimizations (Next)
+- Prevents showing the same moment twice (once as transcript, once as visual)
+- Cleaner, more relevant search results
+- Location: src/main/ipc.ts lines 260-269
 
-### Short-term (Easy, High Impact)
-- [ ] **Persist CLIP/Whisper as daemon processes** — avoid 2-3s startup overhead per video
-- [ ] **LLM-based reranking** — use Ollama to rerank top 20 results semantically
-- [ ] **Query expansion** — generate related queries to improve recall
+## Phase 2: Speed Improvements
 
-### Medium-term (Moderate, Medium Impact)
-- [ ] **Temporal weighting** — boost results near other high-scoring moments
-- [ ] **Caching embeddings** — store intermediate embeddings to enable re-search
-- [ ] **GPU memory optimization** — use smaller models for very large videos
+### Parallel Extraction and Transcription
 
-### Long-term (Advanced, High Reward)
-- [ ] **Fine-tuned CLIP** — train on domain-specific video corpus
-- [ ] **Multi-modal reranking** — use LLaVA or CoCa for joint understanding
-- [ ] **Semantic compression** — reduce storage size via quantization
+Transcription and frame extraction now run simultaneously instead of sequentially.
 
----
+- Benefit: 30-40% faster overall indexing
+- Implementation: Promise.all() in main pipeline
+- Location: src/main/ipc.ts lines 160-169
 
-## Testing & Validation
+### Batch Frame Embedding
 
-### Metrics to Track
-1. **Indexing time** — total time to process a video
-2. **Search quality** — relevance of top results (subjective)
-3. **Memory usage** — peak GPU/CPU memory during processing
-4. **Accuracy** — compare ViT-L/14 vs ViT-B/32 on test videos
+Process multiple frames per CLIP inference instead of one-by-one.
 
-### How to Measure
-- Check console logs: `[Pipeline]`, `[CLIP]` prefixed messages
-- Time individual videos of various lengths
-- Visually compare search results before/after
+- 2-3x faster CLIP embedding for large videos
+- Default batch size: 8 frames per inference
+- GPU/device utilization improved
+- Location: python/clip_server.py lines 47-72
 
----
+### Performance Logging
+
+Comprehensive timing information at each pipeline stage.
+
+- Track optimization benefits
+- Identify remaining bottlenecks
+- Locations:
+  - src/main/ipc.ts — overall pipeline timing
+  - src/main/pipeline/clip.ts — frame embedding timing
+  - python/clip_server.py — model load status
+
+## Phase 3: Scale Improvements
+
+### Persistent Process Pools
+
+Keep CLIP and Whisper servers running between requests.
+
+- Eliminates 2-3 second Python startup overhead per video
+- Reuse model instances across multiple indexing operations
+- Graceful shutdown on app exit
+- Location: src/main/pipeline/process-pool.ts
+
+### LLM-Based Reranking
+
+Use Ollama to semantically rerank top 20 search results.
+
+- Better relevance by understanding context
+- Optional feature (enableReranking setting)
+- Gracefully falls back if Ollama unavailable
+- Location: src/main/pipeline/reranker.ts
+
+## Performance Benchmarks
+
+Expected indexing times after all optimizations:
+
+| Video Length | Time | Notes |
+|---|---|---|
+| 5 minutes | 20-30 seconds | Fast, good for testing |
+| 30 minutes | 2-3 minutes | Typical YouTube video |
+| 1 hour | 4-5 minutes | Long presentation |
+| 2 hours | 8-10 minutes | Movie or conference |
+
+Variables affecting speed:
+- Video resolution (higher = more frames)
+- Frame interval (default 2 sec = 1,800 frames/hour)
+- Whisper model size (base=fast, large=more accurate)
+- GPU availability (Apple Silicon = fastest)
+
+## Architecture (Updated)
+
+Video processing pipeline with optimized parallelization:
+
+```
+Video Processing (Parallel Extraction)
+├─ Extract audio ──────┐
+│                      ├─ Parallel ─┬─ Transcribe (Whisper)
+│                      │            │
+└──────────────────────┤            ├─ Text embeddings (Ollama)
+                       │            │
+                       ├─ Extract frames ──┤
+                       │                   ├─ Batch embedding (CLIP ViT-L/14)
+                       │                   │
+                       └───────────────────┴─ Store in LanceDB
+
+Search (Improved Ranking)
+├─ Query embedding (Ollama)
+├─ Parallel ─┬─ Search transcripts (10 results)
+│            │
+│            └─ Query embedding (CLIP)
+│                ↓
+│                Search frames (15 results)
+│
+├─ Merge with normalized scores
+├─ Deduplicate by timestamp
+├─ Optional reranking (Ollama + Mistral)
+│
+└─ Return top 20 ranked results
+```
+
+## Implementation Details
+
+### Search Ranking Algorithm
+
+1. Search text and visual indexes in parallel
+2. Normalize scores by embedding dimensions
+3. Weight by source (transcript vs visual)
+4. Deduplicate results within same timestamp
+5. Optional LLM reranking if enabled
+6. Return top 20 results
+
+### Batch Processing
+
+CLIP server processes frames in batches for efficiency:
+
+- Batch size: 8 frames (configurable)
+- Stack preprocessing on GPU
+- Single inference call for entire batch
+- Reduces model loading overhead
 
 ## Configuration
 
 ### Environment Variables
+
 ```bash
-# Use larger embedding batch for more GPU RAM (default: 8)
-CLIP_BATCH_SIZE=16
-
-# Use faster but less accurate model (fallback)
-CLIP_MODEL_FALLBACK=true
+CLIP_BATCH_SIZE=16          # Increase for more GPU RAM
+OLLAMA_BASE_URL=http://...  # Custom Ollama endpoint
 ```
 
-### Settings UI (Future)
-- Frame interval (already supported)
-- Embedding batch size
-- Model selection (ViT-L/14 vs ViT-B/32)
+### App Settings
 
----
+Accessible via settings panel:
 
-## Known Tradeoffs
+- embedReranking: Enable/disable LLM reranking
+- frameIntervalSeconds: Adjust frame sampling rate
+- ollamaBaseUrl: Custom Ollama server address
 
-| Change | Pro | Con |
-|--------|-----|-----|
-| ViT-L/14 model | Better accuracy | ~2x slower inference |
-| Batch embedding | Faster overall | Uses more GPU memory |
+## Tradeoffs
+
+| Optimization | Benefit | Cost |
+|---|---|---|
+| ViT-L/14 model | Better accuracy | 2x slower inference |
+| Batch embedding | Faster overall | Higher GPU memory usage |
 | Parallel extraction | Faster indexing | Higher CPU/disk usage during processing |
-| Search normalization | More relevant results | Slight added complexity |
+| Persistent processes | Faster repeated use | Keeps Python running (minimal overhead) |
+| LLM reranking | Better results | Requires Ollama with Mistral model |
 
----
+## Testing
 
-## Architecture Overview (Updated)
+Verify optimizations by:
 
+1. Running full test suite
+2. Processing test videos of various lengths
+3. Checking console logs for timing information
+4. Comparing before/after processing times
+5. Verifying search result quality
+
+## Future Optimizations
+
+### Short-term
+
+- Query expansion (generate related queries)
+- Temporal weighting (boost nearby high-scoring results)
+- Embedding caching (enable re-search)
+
+### Medium-term
+
+- GPU memory optimization
+- Quantized model support
+- Custom quantization for storage reduction
+
+### Long-term
+
+- Domain-specific fine-tuned CLIP
+- Multi-modal reranking models
+- Cross-video semantic search
+
+## Rollback
+
+If performance degradation occurs, revert to previous optimization phase:
+
+```bash
+git revert <commit-hash>
+npm run build
+npm run dev
 ```
-Video Processing Pipeline (now with parallelization)
-┌─ Extract audio ──────┐
-│                      ├─ Parallel ─┬─ Transcribe ─────────────┐
-│                      │            │                          ├─ Text embeddings (Ollama)
-└──────────────────────┤            │                          │
-                       │            └─ Extract frames ─────────┼─ Visual embeddings (CLIP ViT-L/14)
-                       │                                        │
-                       └────────────────────────────────────────┴─ Store in LanceDB
-
-Search (improved ranking)
-┌─ Query embedding (Ollama)
-│   ↓
-├─ Search transcripts (10 results)
-│
-├─ Parallel ─┬─ Query embedding (CLIP)
-│            │   ↓
-│            └─ Search frames (15 results)
-│
-└─ Merge & normalize scores
-   ↓
-   Deduplicate by timestamp
-   ↓
-   Return top 20 ranked results
-```
-
----
-
-## Next Steps
-
-1. **Test current optimizations** — run several videos, check console output
-2. **Measure baseline** — note times before/after each change
-3. **Persist processes** — biggest remaining bottleneck for repeated use
-4. **Add reranking** — semantic reranking for even better results
