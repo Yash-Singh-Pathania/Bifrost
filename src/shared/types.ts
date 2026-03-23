@@ -25,9 +25,12 @@ export interface SearchResult {
   timestamp: number
   endTime?: number
   snippet: string
+  text?: string
   score: number
+  normalizedScore?: number
   source: 'transcript' | 'visual'
   framePath?: string
+  reranked?: boolean
 }
 
 /** Processing pipeline stages */
@@ -65,6 +68,9 @@ export interface AppSettings {
   // Frame extraction
   frameIntervalSeconds: number  // e.g., 2 = 1 frame every 2 seconds
 
+  // Search optimization
+  enableReranking: boolean  // Use LLM to rerank top results
+
   // Paths
   dataDir: string
 }
@@ -79,6 +85,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   whisperModel: 'base',
 
   frameIntervalSeconds: 2,
+  enableReranking: true,  // Use Mistral for reranking (when Ollama available)
 
   dataDir: '' // Set at runtime to app.getPath('userData')/data
 }

@@ -15,6 +15,7 @@ import { transcribe } from './pipeline/whisper'
 import { embedFrames, embedTextWithClip } from './pipeline/clip'
 import { getEmbeddingProvider } from './pipeline/embeddings'
 import { VectorStore } from './pipeline/vectordb'
+import { rerankResults } from './pipeline/reranker'
 import { v4 as uuid } from 'uuid'
 
 // ── Settings persistence ────────────────────────────────────
@@ -140,6 +141,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.PROCESS_VIDEO, async (_event, filePath: string) => {
     const settings = loadSettings()
     const videoId = uuid()
+    const startTime = performance.now()
 
     // Each video gets its own isolated data directory
     const videoDataDir = join(settings.dataDir, videoId)
@@ -148,6 +150,8 @@ export function registerIpcHandlers(): void {
     const vectorStore = new VectorStore(videoDataDir)
 
     try {
+      console.log(`[Pipeline] Starting video processing: ${filePath}`)
+
       // Stage 1: Get video info
       sendProgress({ stage: 'extracting-audio', progress: 0, message: 'Analyzing video...' })
       const videoInfo = await getVideoInfo(filePath)
@@ -157,15 +161,15 @@ export function registerIpcHandlers(): void {
       const audioPath = join(videoDataDir, 'audio.wav')
       await extractAudio(filePath, audioPath)
 
-      // Stage 3: Transcribe
-      sendProgress({ stage: 'transcribing', progress: 25, message: 'Transcribing audio with Whisper...' })
-      const transcriptChunks = await transcribe(audioPath, settings)
-
-      // Stage 4: Extract frames
-      sendProgress({ stage: 'extracting-frames', progress: 45, message: 'Extracting video frames...' })
+      // Stage 3-4: Transcribe + Extract frames in parallel for speed
+      sendProgress({ stage: 'transcribing', progress: 25, message: 'Processing transcription and frames...' })
       const framesDir = join(videoDataDir, 'frames')
       if (!existsSync(framesDir)) mkdirSync(framesDir, { recursive: true })
-      const framePaths = await extractFrames(filePath, framesDir, settings.frameIntervalSeconds)
+
+      const [transcriptChunks, framePaths] = await Promise.all([
+        transcribe(audioPath, settings),
+        extractFrames(filePath, framesDir, settings.frameIntervalSeconds)
+      ])
 
       // Stage 5: Embed transcript chunks
       sendProgress({ stage: 'embedding-text', progress: 60, message: 'Embedding transcript with Ollama...' })
@@ -205,6 +209,12 @@ export function registerIpcHandlers(): void {
 
       sendProgress({ stage: 'done', progress: 100, message: 'Video indexed successfully!' })
 
+      const totalDuration = (performance.now() - startTime) / 1000
+      console.log(`[Pipeline] Completed in ${totalDuration.toFixed(1)}s`)
+      console.log(`  - Transcript chunks: ${transcriptChunks.length}`)
+      console.log(`  - Frames embedded: ${frameEmbeddings.length}`)
+      console.log(`  - Avg time per frame: ${(totalDuration / frameEmbeddings.length).toFixed(2)}s`)
+
       const windows = BrowserWindow.getAllWindows()
       for (const win of windows) {
         win.webContents.send(IPC_CHANNELS.PROCESSING_COMPLETE, {
@@ -229,24 +239,65 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  // ── Search (scoped to one video) ──
+  // ── Search (scoped to one video) with normalized ranking ──
   ipcMain.handle(IPC_CHANNELS.SEARCH, async (_event, query: string, videoDataDir: string) => {
     const settings = loadSettings()
     const vectorStore = new VectorStore(videoDataDir)
 
     try {
       const embeddingProvider = getEmbeddingProvider(settings)
-      const [queryEmbedding] = await embeddingProvider.embed([query])
-      const transcriptResults = await vectorStore.searchTranscripts(queryEmbedding, 10)
-      const clipQueryEmbedding = await embedTextWithClip(query, settings)
-      const frameResults = await vectorStore.searchFrames(clipQueryEmbedding, 10)
 
+      // Search both text and visual with parallel queries
+      const [queryEmbedding] = await embeddingProvider.embed([query])
+      const clipQueryEmbedding = await embedTextWithClip(query, settings)
+
+      const [transcriptResults, frameResults] = await Promise.all([
+        vectorStore.searchTranscripts(queryEmbedding, 15),
+        vectorStore.searchFrames(clipQueryEmbedding, 15)
+      ])
+
+      // Combine results with normalized scores
+      // Normalize by source type to account for embedding dimension differences
       const allResults: SearchResult[] = [
-        ...transcriptResults.map(r => ({ ...r, source: 'transcript' as const })),
-        ...frameResults.map(r => ({ ...r, source: 'visual' as const }))
+        ...transcriptResults.map(r => ({
+          ...r,
+          source: 'transcript' as const,
+          normalizedScore: r.score * 0.9  // Slight weight for context-aware text
+        })),
+        ...frameResults.map(r => ({
+          ...r,
+          source: 'visual' as const,
+          normalizedScore: r.score * 1.0  // Visual is often more direct match
+        }))
       ]
-      allResults.sort((a, b) => b.score - a.score)
-      return allResults.slice(0, 20)
+
+      // Sort by normalized score
+      allResults.sort((a, b) => (b.normalizedScore || 0) - (a.normalizedScore || 0))
+
+      // Remove duplicate timestamps (keep best scoring result)
+      const seen = new Set<number>()
+      const deduped = allResults.filter(r => {
+        const ts = Math.round(r.timestamp)
+        if (seen.has(ts)) return false
+        seen.add(ts)
+        return true
+      })
+
+      const topResults = deduped.slice(0, 20)
+
+      // Optional: Rerank with LLM for better relevance
+      // (only if Ollama is available and result count justifies it)
+      if (topResults.length > 5 && settings.enableReranking) {
+        try {
+          const reranked = await rerankResults(query, topResults)
+          return reranked
+        } catch (e) {
+          console.log('[Search] Reranking skipped, returning original order')
+          return topResults
+        }
+      }
+
+      return topResults
     } catch (error) {
       console.error('Search error:', error)
       return []

@@ -23,13 +23,17 @@ export async function embedFrames(
   const pythonDir = process.env.PYTHON_DIR || join(__dirname, '../../../python')
   const scriptPath = join(pythonDir, 'clip_server.py')
 
+  const startTime = performance.now()
+  console.log(`[CLIP] Starting to embed ${framePaths.length} frames...`)
+
   return new Promise((resolve, reject) => {
     const proc = spawn(pythonPath, [scriptPath])
 
-    // Send the command via stdin
+    // Send the command via stdin with batching for efficiency
     const command = {
       action: 'embed_frames',
       paths: framePaths,
+      batch_size: 8,
       interval: settings.frameIntervalSeconds
     }
 
@@ -37,9 +41,13 @@ export async function embedFrames(
     let stderr = ''
 
     proc.stdout.on('data', (data) => { stdout += data.toString() })
-    proc.stderr.on('data', (data) => { stderr += data.toString() })
+    proc.stderr.on('data', (data) => {
+      stderr += data.toString()
+      console.log(`[CLIP] ${data.toString().trim()}`)
+    })
 
     proc.on('close', (code) => {
+      const duration = performance.now() - startTime
       if (code !== 0) {
         return reject(new Error(`CLIP frame embedding failed (code ${code}): ${stderr}`))
       }
@@ -52,6 +60,7 @@ export async function embedFrames(
           framePath: framePaths[i],
           embedding: r.embedding
         }))
+        console.log(`[CLIP] Embedded ${framePaths.length} frames in ${(duration / 1000).toFixed(1)}s`)
         resolve(embeddings)
       } catch (e) {
         reject(new Error(`Failed to parse CLIP output: ${e}`))

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bifrost — Semantic Video Search</title>
+  <meta name="description" content="Find any moment in a video by what was said or shown. Like Ctrl+F for video. Fully local, fully free.">
+  <meta property="og:title" content="Bifrost — Semantic Video Search">
+  <meta property="og:description" content="Find any moment in a video by what was said or shown. Fully local, fully free.">
+  <meta property="og:type" content="website">
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface-hover: #1a1a1a;
+      --border: rgba(255,255,255,0.08);
+      --text: #ffffff;
+      --text-secondary: rgba(255,255,255,0.55);
+      --text-muted: rgba(255,255,255,0.3);
+      --accent: rgba(255,255,255,0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 120px 24px 80px;
+    }
+
+    .hero-logo {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 56px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+
+    .hero p {
+      font-size: 18px;
+      color: var(--text-secondary);
+      max-width: 520px;
+      margin: 0 auto 40px;
+      line-height: 1.6;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 9999px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--text);
+      color: var(--bg);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(255,255,255,0.15);
+    }
+
+    .btn-secondary {
+      background: var(--accent);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.18);
+      border-color: rgba(255,255,255,0.15);
+    }
+
+    /* Features */
+    .features {
+      padding: 40px 0 80px;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 24px;
+      transition: all 0.2s;
+    }
+
+    .feature-card:hover {
+      background: var(--surface-hover);
+      border-color: rgba(255,255,255,0.12);
+      transform: translateY(-2px);
+    }
+
+    .feature-card h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* How it works */
+    .how-it-works {
+      padding: 40px 0 80px;
+    }
+
+    .how-it-works h2 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .step {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      padding: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    .step:first-child { border-radius: 16px 16px 0 0; }
+    .step:last-child { border-radius: 0 0 16px 16px; }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .step h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .step p {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* Install */
+    .install {
+      padding: 40px 0 80px;
+    }
+
+    .install h2 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+
+    .code-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 28px;
+      overflow-x: auto;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 14px;
+      line-height: 1.8;
+      color: var(--text-secondary);
+    }
+
+    .code-block .comment { color: var(--text-muted); }
+    .code-block .cmd { color: var(--text); }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 40px 24px 60px;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .footer a {
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+
+  <section class="hero">
+    <div class="hero-logo">Bifrost</div>
+    <h1>Find any moment<br>in any video</h1>
+    <p>
+      Semantic video search powered by AI. Search by what was said or what was shown.
+      Runs entirely on your machine. Free and open source.
+    </p>
+    <div class="hero-actions">
+      <a href="https://github.com/YashSingPathania/Bifrost/releases" class="btn btn-primary">Download</a>
+      <a href="https://github.com/YashSingPathania/Bifrost" class="btn btn-secondary">View on GitHub</a>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="container">
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>Transcript Search</h3>
+          <p>Find moments by what was said. Powered by Whisper for accurate transcription.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Visual Search</h3>
+          <p>Find moments by what was shown. CLIP understands the visual content of every frame.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Fully Local</h3>
+          <p>Everything runs on your machine. Your videos never leave your device.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Free Forever</h3>
+          <p>Powered by Ollama and open-source ML models. No API keys, no subscriptions.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Cross-Platform</h3>
+          <p>Available for macOS, Windows, and Linux.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Click to Jump</h3>
+          <p>Click any search result to jump straight to that moment in the video.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="how-it-works">
+    <div class="container">
+      <h2>How it works</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div>
+            <h3>Import a video</h3>
+            <p>Drop any video file into Bifrost, or click Import to browse. MP4, MKV, WebM, MOV, and more.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div>
+            <h3>Automatic indexing</h3>
+            <p>Bifrost extracts audio, transcribes it with Whisper, samples frames, and builds a searchable index with CLIP and Ollama.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div>
+            <h3>Search by meaning</h3>
+            <p>Type a natural language query. Bifrost searches both the transcript and visual content, ranked by semantic similarity.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <div>
+            <h3>Jump to the moment</h3>
+            <p>Click any result to seek directly to that timestamp. Done.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="install">
+    <div class="container">
+      <h2>Quick start</h2>
+      <div class="code-block">
+        <span class="comment"># Clone and install</span><br>
+        <span class="cmd">git clone https://github.com/YashSingPathania/Bifrost.git</span><br>
+        <span class="cmd">cd Bifrost && npm install</span><br>
+        <br>
+        <span class="comment"># Set up ML environment</span><br>
+        <span class="cmd">npm run setup:python</span><br>
+        <span class="cmd">ollama pull nomic-embed-text</span><br>
+        <br>
+        <span class="comment"># Run</span><br>
+        <span class="cmd">npm run dev</span>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p>
+      MIT License &middot;
+      <a href="https://github.com/YashSingPathania/Bifrost">GitHub</a>
+    </p>
+  </footer>
+
+</body>
+</html>
