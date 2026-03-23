@@ -1,80 +1,11 @@
 import React, { useMemo } from 'react'
 import { SearchResult } from '../../shared/types'
+import { clusterSearchResults } from '../utils/searchClusters'
 
 interface SearchResultsProps {
   results: SearchResult[]
   onResultClick: (result: SearchResult) => void
   isSearching: boolean
-}
-
-// ── Clustering ──────────────────────────────────────────────
-
-interface ClusteredResult {
-  /** The best-scoring result in the cluster (used for click target) */
-  best: SearchResult
-  /** All results in this cluster */
-  results: SearchResult[]
-  /** Source type */
-  source: 'transcript' | 'visual'
-  /** Start of the time range */
-  startTime: number
-  /** End of the time range */
-  endTime: number
-  /** Highest score in the cluster */
-  score: number
-  /** Representative snippet */
-  snippet: string
-}
-
-const CLUSTER_GAP_SECONDS = 8 // merge if gap < 8s
-
-function clusterResults(results: SearchResult[]): ClusteredResult[] {
-  if (results.length === 0) return []
-
-  // Separate by source, sort each by timestamp
-  const transcripts = results
-    .filter(r => r.source === 'transcript')
-    .sort((a, b) => a.timestamp - b.timestamp)
-
-  const visuals = results
-    .filter(r => r.source === 'visual')
-    .sort((a, b) => a.timestamp - b.timestamp)
-
-  function buildClusters(sorted: SearchResult[]): ClusteredResult[] {
-    if (sorted.length === 0) return []
-    const clusters: ClusteredResult[] = []
-    let current: SearchResult[] = [sorted[0]]
-
-    for (let i = 1; i < sorted.length; i++) {
-      const prev = sorted[i - 1]
-      const curr = sorted[i]
-      if (curr.timestamp - prev.timestamp <= CLUSTER_GAP_SECONDS) {
-        current.push(curr)
-      } else {
-        clusters.push(finalize(current))
-        current = [curr]
-      }
-    }
-    clusters.push(finalize(current))
-    return clusters
-  }
-
-  function finalize(group: SearchResult[]): ClusteredResult {
-    const best = group.reduce((a, b) => (b.score > a.score ? b : a), group[0])
-    return {
-      best,
-      results: group,
-      source: group[0].source as 'transcript' | 'visual',
-      startTime: group[0].timestamp,
-      endTime: group[group.length - 1].timestamp,
-      score: best.score,
-      snippet: best.snippet
-    }
-  }
-
-  const allClusters = [...buildClusters(transcripts), ...buildClusters(visuals)]
-  allClusters.sort((a, b) => b.score - a.score)
-  return allClusters
 }
 
 // ── Formatting helpers ──────────────────────────────────────
@@ -98,14 +29,13 @@ function formatTimeRange(start: number, end: number): string {
 // ── Component ───────────────────────────────────────────────
 
 export default function SearchResults({ results, onResultClick, isSearching }: SearchResultsProps) {
-  const clusters = useMemo(() => clusterResults(results), [results])
+  const clusters = useMemo(() => clusterSearchResults(results), [results])
 
   if (isSearching) {
     return (
       <div className="results-container">
         <div className="results-loading">
           <div className="loading-pulse" />
-          <p>Searching across transcript and video frames...</p>
         </div>
       </div>
     )

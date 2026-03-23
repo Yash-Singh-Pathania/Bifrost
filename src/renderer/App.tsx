@@ -1,12 +1,12 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react'
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { SearchResult, ProcessingProgress, VideoLibraryEntry } from '../shared/types'
 import DropZone from './components/DropZone'
 import VideoPlayer, { VideoPlayerRef } from './components/VideoPlayer'
 import SearchBar from './components/SearchBar'
-import SearchResults from './components/SearchResults'
 import ProcessingStatus from './components/ProcessingStatus'
 import Settings from './components/Settings'
 import Library from './components/Library'
+import { clusterSearchResults } from './utils/searchClusters'
 
 type AppState = 'idle' | 'processing' | 'ready'
 
@@ -18,21 +18,50 @@ export default function App() {
   const [progress, setProgress] = useState<ProcessingProgress | null>(null)
   const [results, setResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const [hasSearched, setHasSearched] = useState(false)
+  const [showSearchMarkers, setShowSearchMarkers] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [library, setLibrary] = useState<VideoLibraryEntry[]>([])
   
   // Spatial Panel States
   const [isLibraryVisible, setIsLibraryVisible] = useState(true)
-  const [isSearchVisible, setIsSearchVisible] = useState(true)
+  const [isSearchVisible, setIsSearchVisible] = useState(false)
   
   const videoRef = useRef<VideoPlayerRef>(null)
+  const clusteredMarkers = useMemo(() => {
+    return clusterSearchResults(results).map(cluster => ({
+      id: cluster.best.id,
+      timestamp: cluster.best.timestamp,
+      source: cluster.source,
+      label: cluster.snippet,
+      count: cluster.results.length,
+      startTime: cluster.startTime,
+      endTime: cluster.endTime
+    }))
+  }, [results])
 
   // Load library on mount
   useEffect(() => {
     window.api.getLibrary().then(setLibrary)
   }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== 'Space') return
+
+      const target = event.target as HTMLElement | null
+      const tagName = target?.tagName?.toLowerCase()
+      const isTypingTarget = tagName === 'input' || tagName === 'textarea' || target?.isContentEditable
+
+      if (isTypingTarget || appState !== 'ready') return
+
+      event.preventDefault()
+      videoRef.current?.togglePlayPause()
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [appState])
 
   // ── Start processing a video ────────────────────────────
   const startProcessing = useCallback(async (filePath: string, fileName: string) => {
@@ -54,10 +83,11 @@ export default function App() {
         setLibrary(prev => [result.libraryEntry, ...prev])
       }
       setAppState('ready')
+      setShowSearchMarkers(false)
       
       // Auto-hide library and show search + video in immersive mode
       setIsLibraryVisible(false)
-      setIsSearchVisible(true)
+      setIsSearchVisible(false)
     })
 
     const unsubError = window.api.onProcessingError((err) => {
@@ -90,11 +120,11 @@ export default function App() {
     setVideoName(entry.fileName)
     setCurrentEntry(entry)
     setResults([])
-    setHasSearched(false)
+    setShowSearchMarkers(false)
     setAppState('ready')
     // Automatically enter immersive mode on select
     setIsLibraryVisible(false)
-    setIsSearchVisible(true)
+    setIsSearchVisible(false)
   }, [])
 
   // ── Delete from library ─────────────────────────────────
@@ -107,7 +137,7 @@ export default function App() {
       setVideoPath('')
       setVideoName('')
       setResults([])
-      setHasSearched(false)
+      setShowSearchMarkers(false)
     }
   }, [currentEntry])
 
@@ -115,10 +145,10 @@ export default function App() {
   const handleSearch = useCallback(async (query: string) => {
     if (!query.trim() || !currentEntry) {
       setResults([])
-      setHasSearched(false)
+      setShowSearchMarkers(false)
       return
     }
-    setHasSearched(true)
+    setShowSearchMarkers(true)
     setIsSearching(true)
     try {
       const searchResults = await window.api.search(query, currentEntry.dataDir)
@@ -130,9 +160,16 @@ export default function App() {
     }
   }, [currentEntry])
 
-  // ── Seek video ──────────────────────────────────────────
-  const handleResultClick = useCallback((result: SearchResult) => {
-    videoRef.current?.seekTo(result.timestamp)
+  const handleSearchActivate = useCallback(() => {
+    setIsSearchVisible(true)
+    if (results.length > 0) {
+      setShowSearchMarkers(true)
+    }
+  }, [results.length])
+
+  const handleMarkersDismiss = useCallback(() => {
+    setShowSearchMarkers(false)
+    setIsSearchVisible(false)
   }, [])
 
   // ── Reset to idle ───────────────────────────────────────
@@ -141,7 +178,7 @@ export default function App() {
     setVideoPath('')
     setVideoName('')
     setResults([])
-    setHasSearched(false)
+    setShowSearchMarkers(false)
     setProgress(null)
     setError(null)
     setCurrentEntry(null)
@@ -182,6 +219,8 @@ export default function App() {
             <VideoPlayer
               ref={videoRef}
               src={currentEntry.filePath}
+              markers={showSearchMarkers ? clusteredMarkers : []}
+              onMarkersDismiss={handleMarkersDismiss}
             />
           </div>
         )}
@@ -207,33 +246,14 @@ export default function App() {
 
       {/* Search Floating Glass Panel */}
       {appState === 'ready' && currentEntry && (
-        <div className={`spatial-panel search-panel ${isSearchVisible ? 'visible' : 'hidden'} ${isSearching || hasSearched || results.length > 0 ? 'has-results' : 'compact'}`}>
+        <div className={`spatial-panel search-panel ${isSearchVisible ? 'visible' : 'hidden'} compact ${isSearching ? 'searching' : ''}`}>
           <div className="glass-material panel-content flex-col">
-            <div className="glass-panel-header">
-              <h2 className="glass-panel-title">Semantic Search</h2>
-              <button 
-                className="glass-panel-close"
-                onClick={() => setIsSearchVisible(false)}
-                title="Hide Search"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
             <div className="glass-panel-body">
               <SearchBar
                 onSearch={handleSearch}
                 isSearching={isSearching}
+                onActivate={handleSearchActivate}
               />
-              {(isSearching || hasSearched) && (
-                <SearchResults
-                  results={results}
-                  onResultClick={handleResultClick}
-                  isSearching={isSearching}
-                />
-              )}
             </div>
           </div>
         </div>

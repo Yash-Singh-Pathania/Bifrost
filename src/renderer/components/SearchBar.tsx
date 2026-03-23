@@ -3,9 +3,10 @@ import React, { useState, useCallback, useRef, useEffect } from 'react'
 interface SearchBarProps {
   onSearch: (query: string) => void
   isSearching: boolean
+  onActivate?: () => void
 }
 
-export default function SearchBar({ onSearch, isSearching }: SearchBarProps) {
+export default function SearchBar({ onSearch, isSearching, onActivate }: SearchBarProps) {
   const [query, setQuery] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -52,6 +53,7 @@ export default function SearchBar({ onSearch, isSearching }: SearchBarProps) {
           value={query}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
+          onFocus={onActivate}
           autoFocus
         />
         {isSearching && <div className="search-spinner" />}

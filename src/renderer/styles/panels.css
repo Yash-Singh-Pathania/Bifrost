@@ -56,7 +56,7 @@
 /* Compact mode when no search results */
 .search-panel.compact {
   height: auto;
-  max-height: 180px;
+  max-height: 220px;
   bottom: auto;
 }
 

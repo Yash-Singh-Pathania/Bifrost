@@ -4,7 +4,7 @@ CLIP Server — embeds video frames and text queries into the same vector space.
 Communicates via JSON-line protocol over stdin/stdout.
 
 Commands:
-  {"action": "embed_frames", "paths": ["/path/to/frame1.jpg", ...], "interval": 2}
+  {"action": "embed_frames", "paths": ["/path/to/frame1.jpg", ...], "batch_size": 8}
   {"action": "embed_text", "text": "a red Porsche"}
 
 Responses:
@@ -14,6 +14,7 @@ Responses:
 
 import sys
 import json
+import time
 import torch
 import open_clip
 from PIL import Image
@@ -33,34 +34,69 @@ def load_model():
     _device = "mps" if torch.backends.mps.is_available() else \
               "cuda" if torch.cuda.is_available() else "cpu"
 
-    _model, _, _preprocess = open_clip.create_model_and_transforms(
-        'ViT-B-32',
-        pretrained='laion2b_s34b_b79k',
-        device=_device
-    )
-    _tokenizer = open_clip.get_tokenizer('ViT-B-32')
+    # Use ViT-L/14 for better accuracy (768-dim, matches Ollama embeddings)
+    # Falls back to ViT-B/32 if ViT-L/14 is unavailable
+    try:
+        _model, _, _preprocess = open_clip.create_model_and_transforms(
+            'ViT-L-14',
+            pretrained='openai',
+            device=_device
+        )
+        _tokenizer = open_clip.get_tokenizer('ViT-L-14')
+        model_name = 'ViT-L-14'
+    except Exception:
+        # Fallback to ViT-B/32 if ViT-L/14 fails
+        _model, _, _preprocess = open_clip.create_model_and_transforms(
+            'ViT-B-32',
+            pretrained='laion2b_s34b_b79k',
+            device=_device
+        )
+        _tokenizer = open_clip.get_tokenizer('ViT-B-32')
+        model_name = 'ViT-B-32 (fallback)'
+
     _model.eval()
 
-    print(json.dumps({"status": "model_loaded", "device": _device}), file=sys.stderr)
+    print(json.dumps({"status": "model_loaded", "device": _device, "model": model_name}), file=sys.stderr)
 
 
-def embed_frames(paths: list[str]) -> list[dict]:
-    """Embed a list of image frame paths."""
+def embed_frames(paths: list[str], batch_size: int = 8) -> list[dict]:
+    """Embed a list of image frame paths with batching for speed."""
     load_model()
     results = []
 
-    for path in paths:
+    # Process frames in batches for better GPU utilization
+    for batch_start in range(0, len(paths), batch_size):
+        batch_end = min(batch_start + batch_size, len(paths))
+        batch_paths = paths[batch_start:batch_end]
+
         try:
-            image = _preprocess(Image.open(path)).unsqueeze(0).to(_device)
-            with torch.no_grad():
-                embedding = _model.encode_image(image)
-                embedding = embedding / embedding.norm(dim=-1, keepdim=True)
-                results.append({
-                    "embedding": embedding.cpu().squeeze().tolist()
-                })
+            # Load and preprocess images in batch
+            images = []
+            valid_indices = []
+            for i, path in enumerate(batch_paths):
+                try:
+                    img = _preprocess(Image.open(path))
+                    images.append(img)
+                    valid_indices.append(i)
+                except Exception as e:
+                    print(json.dumps({"error": str(e), "path": path}), file=sys.stderr)
+                    results.append({"embedding": []})
+
+            if images:
+                # Stack and embed the batch
+                image_batch = torch.stack(images).to(_device)
+                with torch.no_grad():
+                    embeddings = _model.encode_image(image_batch)
+                    embeddings = embeddings / embeddings.norm(dim=-1, keepdim=True)
+
+                    for j, embedding in enumerate(embeddings):
+                        results.append({
+                            "embedding": embedding.cpu().tolist()
+                        })
         except Exception as e:
-            print(json.dumps({"error": str(e), "path": path}), file=sys.stderr)
-            results.append({"embedding": []})
+            print(json.dumps({"error": str(e), "batch": batch_paths}), file=sys.stderr)
+            for _ in batch_paths:
+                results.append({"embedding": []})
 
     return results
 
