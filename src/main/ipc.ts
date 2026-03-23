@@ -15,6 +15,7 @@ import { transcribe } from './pipeline/whisper'
 import { embedFrames, embedTextWithClip } from './pipeline/clip'
 import { getEmbeddingProvider } from './pipeline/embeddings'
 import { VectorStore } from './pipeline/vectordb'
+import { rerankResults } from './pipeline/reranker'
 import { v4 as uuid } from 'uuid'
 
 // ── Settings persistence ────────────────────────────────────
@@ -282,7 +283,21 @@ export function registerIpcHandlers(): void {
         return true
       })
 
-      return deduped.slice(0, 20)
+      const topResults = deduped.slice(0, 20)
+
+      // Optional: Rerank with LLM for better relevance
+      // (only if Ollama is available and result count justifies it)
+      if (topResults.length > 5 && settings.enableReranking) {
+        try {
+          const reranked = await rerankResults(query, topResults)
+          return reranked
+        } catch (e) {
+          console.log('[Search] Reranking skipped, returning original order')
+          return topResults
+        }
+      }
+
+      return topResults
     } catch (error) {
       console.error('Search error:', error)
       return []
