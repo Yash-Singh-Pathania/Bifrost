@@ -1,0 +1,1715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>A Knowledge System for Agents</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+/* ===========================================
+   1. DESIGN TOKENS (Dublin / JPMC design language)
+   =========================================== */
+:root {
+  --bg:   #ffffff;
+  --bg-2: #f6f6f4;
+  --bg-3: #efefed;
+
+  --text:   #111111;
+  --text-2: #444444;
+  --text-3: #888888;
+
+  --blue:  #2563eb;
+  --teal:  #0d9488;
+  --amber: #d97706;
+  --red:   #dc2626;
+
+  --border:   rgba(0,0,0,0.09);
+  --border-2: rgba(0,0,0,0.05);
+
+  --font: 'Inter', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+
+  --title-size: clamp(2.4rem, 6vw,   4.8rem);
+  --h2-size:    clamp(1.6rem, 3.6vw, 2.8rem);
+  --h3-size:    clamp(1.05rem, 2vw,  1.55rem);
+  --body-size:  clamp(0.82rem, 1.2vw, 1.05rem);
+  --small-size: clamp(0.72rem, 1vw,  0.92rem);
+  --mono-size:  clamp(0.66rem, 0.95vw, 0.85rem);
+  --lbl-size:   clamp(0.6rem, 0.78vw, 0.72rem);
+
+  --pad: clamp(2rem, 5vw, 5rem);
+  --gap: clamp(0.9rem, 2vw, 1.9rem);
+
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur:  700ms;
+}
+
+/* ===========================================
+   2. RESET + VIEWPORT BASE
+   =========================================== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; overflow-x: hidden; }
+html {
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  background: var(--bg);
+}
+body {
+  font-family: var(--font);
+  font-size: var(--body-size);
+  color: var(--text-2);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.slide {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: var(--bg);
+}
+.slide:nth-child(even) { background: var(--bg-2); }
+.slide.dark { background: #0e0e0e; color: rgba(255,255,255,0.7); }
+.slide.dark h1, .slide.dark h2, .slide.dark h3 { color: #fff; }
+.slide.dark p, .slide.dark li { color: rgba(255,255,255,0.65); }
+.slide.dark strong { color: #fff; }
+.slide.dark .lbl, .slide.dark .eyebrow > .lbl { color: rgba(255,255,255,0.45); }
+.slide.dark .card { border-top-color: rgba(255,255,255,0.15); }
+.slide.dark .card p { color: rgba(255,255,255,0.6); }
+.slide.dark .card .card-label { color: rgba(255,255,255,0.45); }
+.slide.dark .slide-footer { border-top-color: rgba(255,255,255,0.08); }
+.slide.dark .slide-footer .logo svg { fill: #ffffff; }
+.slide.dark .slide-footer .meta { color: rgba(255,255,255,0.55); }
+.slide.dark .slide-footer .meta .sep { color: rgba(255,255,255,0.18); }
+.slide.dark ul.bullets li { color: rgba(255,255,255,0.7); }
+.slide.dark ul.bullets li::before { background: rgba(255,255,255,0.4); }
+
+.slide-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--pad);
+  padding-bottom: clamp(3.2rem, 6vw, 5.5rem);
+  max-height: 100%;
+  overflow: hidden;
+  gap: var(--gap);
+}
+
+/* ===========================================
+   3. TYPOGRAPHY
+   =========================================== */
+h1 {
+  font-size: var(--title-size);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.04;
+  color: var(--text);
+}
+h2 {
+  font-size: var(--h2-size);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.07;
+  color: var(--text);
+  max-width: 22ch;
+}
+h3 {
+  font-size: var(--h3-size);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  color: var(--text);
+}
+p { color: var(--text-2); max-width: 70ch; }
+strong { color: var(--text); font-weight: 600; }
+
+.lbl {
+  font-family: var(--mono);
+  font-size: var(--lbl-size);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.mono { font-family: var(--mono); font-size: var(--mono-size); }
+
+.eyebrow {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 1vw, 0.9rem);
+}
+.eyebrow > .lbl {
+  font-family: var(--font);
+  font-size: var(--small-size);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-3);
+}
+.accent-line {
+  width: 44px;
+  height: 2px;
+  background: var(--blue);
+  margin-top: clamp(0.3rem, 0.8vw, 0.7rem);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 900ms var(--ease) 0.35s;
+}
+.slide.visible .accent-line { transform: scaleX(1); }
+.accent-line.teal  { background: var(--teal); }
+.accent-line.amber { background: var(--amber); }
+
+/* ===========================================
+   4. PROGRESS BAR
+   =========================================== */
+.progress-bar {
+  position: fixed;
+  top: 0; left: 0;
+  height: 2px;
+  width: 0%;
+  background: linear-gradient(90deg, var(--blue), var(--teal));
+  z-index: 100;
+  transition: width 200ms linear;
+}
+
+/* ===========================================
+   4b. NAV DOTS — right rail
+   =========================================== */
+.nav-dots {
+  position: fixed;
+  right: clamp(0.8rem, 1.6vw, 1.6rem);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.nav-dots button {
+  width: 9px; height: 9px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--text-3);
+  background: transparent;
+  cursor: pointer;
+  transition: all 350ms var(--ease);
+  position: relative;
+}
+.nav-dots button:hover { border-color: var(--blue); transform: scale(1.25); }
+.nav-dots button.active {
+  background: var(--blue);
+  border-color: var(--blue);
+  transform: scale(1.15);
+  box-shadow: 0 0 0 4px rgba(37,99,235,0.15);
+}
+.nav-dots.on-dark button { border-color: rgba(255,255,255,0.4); }
+.nav-dots.on-dark button.active {
+  background: var(--teal);
+  border-color: var(--teal);
+  box-shadow: 0 0 0 4px rgba(13,148,136,0.25);
+}
+@media (max-width: 640px) { .nav-dots { display: none; } }
+
+/* ===========================================
+   5. FOOTER — JPMC logo bottom-left
+   =========================================== */
+.slide-footer {
+  position: absolute;
+  left: clamp(0.9rem, 2vw, 1.8rem);
+  right: var(--pad);
+  bottom: clamp(0.9rem, 1.6vw, 1.4rem);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: clamp(0.6rem, 1vw, 0.9rem);
+  border-top: 1px solid var(--border-2);
+  pointer-events: none;
+}
+.slide-footer .logo {
+  height: clamp(14px, 1.6vw, 20px);
+  width: auto;
+  opacity: 0.9;
+}
+.slide-footer .logo svg {
+  height: 100%;
+  width: auto;
+  display: block;
+  fill: var(--text);
+}
+.slide-footer .meta {
+  font-family: var(--mono);
+  font-size: var(--mono-size);
+  color: var(--text-3);
+  display: flex;
+  gap: clamp(0.8rem, 1.5vw, 1.4rem);
+  align-items: center;
+}
+.slide-footer .meta .sep { color: var(--border); }
+
+/* ===========================================
+   6. CARDS
+   =========================================== */
+.card {
+  --card-accent: var(--text);
+  background: transparent;
+  padding: clamp(0.9rem, 1.5vw, 1.4rem) 0 0 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.35rem, 0.7vw, 0.65rem);
+  position: relative;
+  transition: transform 400ms var(--ease);
+}
+.card:hover { transform: translateY(-4px); }
+.card::before {
+  content: '';
+  position: absolute;
+  top: -3px; left: 0;
+  width: 28px; height: 5px;
+  background: var(--card-accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 600ms var(--ease) 0.2s, width 350ms var(--ease);
+}
+.slide.visible .card::before { transform: scaleX(1); }
+.card:hover::before { width: 44px; }
+.card.top-blue  { --card-accent: var(--blue);  }
+.card.top-teal  { --card-accent: var(--teal);  }
+.card.top-amber { --card-accent: var(--amber); }
+.card .card-label {
+  font-family: var(--font);
+  font-size: var(--small-size);
+  color: var(--text-3);
+}
+.card h3 { color: var(--text); }
+.card p  { font-size: var(--small-size); color: var(--text-2); }
+
+/* Grids */
+.grid { display: grid; gap: var(--gap); }
+.grid.cols-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.grid.cols-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.grid.cols-4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+@media (max-width: 800px) {
+  .grid.cols-3, .grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .grid.cols-2, .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr; }
+}
+
+/* Bullet lists */
+ul.bullets {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.4rem, 0.9vw, 0.75rem);
+  max-width: 72ch;
+}
+ul.bullets li {
+  position: relative;
+  padding-left: 1.2rem;
+  font-size: var(--body-size);
+  color: var(--text-2);
+}
+ul.bullets li::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0.7em;
+  width: 6px; height: 1px;
+  background: var(--text-3);
+  transition: width 400ms var(--ease), background 400ms var(--ease);
+}
+ul.bullets li:hover::before { width: 14px; background: var(--blue); }
+
+/* ===========================================
+   7. REVEAL ANIMATIONS
+   =========================================== */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.reveal.from-left  { transform: translateX(-28px); }
+.reveal.from-right { transform: translateX(28px); }
+.reveal.scale-in   { transform: scale(0.94); }
+.slide.visible .reveal { opacity: 1; transform: translate(0,0) scale(1); }
+.slide.visible .reveal:nth-child(1) { transition-delay: 0.05s; }
+.slide.visible .reveal:nth-child(2) { transition-delay: 0.14s; }
+.slide.visible .reveal:nth-child(3) { transition-delay: 0.23s; }
+.slide.visible .reveal:nth-child(4) { transition-delay: 0.32s; }
+.slide.visible .reveal:nth-child(5) { transition-delay: 0.41s; }
+.slide.visible .reveal:nth-child(6) { transition-delay: 0.50s; }
+.grid > .reveal:nth-child(1) { transition-delay: 0.10s; }
+.grid > .reveal:nth-child(2) { transition-delay: 0.22s; }
+.grid > .reveal:nth-child(3) { transition-delay: 0.34s; }
+.grid > .reveal:nth-child(4) { transition-delay: 0.46s; }
+
+/* ===========================================
+   8. TITLE SLIDE
+   =========================================== */
+.title-slide .slide-content {
+  padding: 0; gap: 0; justify-content: stretch;
+}
+.title-split {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  min-height: 0;
+}
+@media (max-width: 900px) {
+  .title-split { grid-template-columns: 1fr; grid-template-rows: 38vh 1fr; }
+}
+.title-banner {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(37,99,235,0.35) 0%, transparent 55%),
+    radial-gradient(circle at 75% 65%, rgba(13,148,136,0.4) 0%, transparent 50%),
+    linear-gradient(135deg, #0a0a0a 0%, #181818 100%);
+  background-size: 180% 180%, 180% 180%, 100% 100%;
+  animation: aurora 16s ease-in-out infinite;
+}
+@keyframes aurora {
+  0%   { background-position: 0% 0%,   100% 100%, 0 0; }
+  50%  { background-position: 60% 40%, 30% 60%,   0 0; }
+  100% { background-position: 0% 0%,   100% 100%, 0 0; }
+}
+.title-banner::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  animation: gridDrift 24s linear infinite;
+}
+@keyframes gridDrift {
+  0%   { background-position: 0 0, 0 0; }
+  100% { background-position: 48px 48px, 48px 48px; }
+}
+.title-banner .kicker {
+  position: absolute;
+  left: clamp(1.2rem, 2.4vw, 2.2rem);
+  bottom: clamp(1.2rem, 2.4vw, 2.2rem);
+  z-index: 2;
+  color: #ffffff;
+  opacity: 0.92;
+  font-family: var(--mono);
+  font-size: var(--lbl-size);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.title-banner .pulse {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: clamp(120px, 22vw, 240px);
+  height: clamp(120px, 22vw, 240px);
+  border-radius: 50%;
+  border: 1px solid rgba(13,148,136,0.5);
+  animation: pulse 3.5s var(--ease) infinite;
+}
+.title-banner .pulse::after {
+  content: '';
+  position: absolute; inset: 18%;
+  border-radius: 50%;
+  border: 1px solid rgba(37,99,235,0.5);
+  animation: pulse 3.5s var(--ease) infinite 0.6s;
+}
+@keyframes pulse {
+  0% { transform: translate(-50%, -50%) scale(0.85); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
+}
+.title-banner .pulse .core {
+  position: absolute; inset: 40%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, rgba(13,148,136,0.6) 60%, transparent 100%);
+  animation: corePulse 3.5s ease-in-out infinite;
+}
+@keyframes corePulse {
+  0%,100% { transform: scale(1);   filter: brightness(1); }
+  50%     { transform: scale(1.18); filter: brightness(1.35); }
+}
+/* Orbiting node — a small satellite circling the core */
+.title-banner .orbit {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: clamp(150px, 26vw, 300px);
+  height: clamp(150px, 26vw, 300px);
+  transform: translate(-50%, -50%);
+  animation: spin 9s linear infinite;
+}
+.title-banner .orbit::before {
+  content: '';
+  position: absolute;
+  top: -4px; left: 50%;
+  width: 8px; height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 14px rgba(255,255,255,0.9), 0 0 28px rgba(13,148,136,0.6);
+}
+@keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+/* Floating particles */
+.title-banner .particles span {
+  position: absolute;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.55);
+  animation: floatUp linear infinite;
+}
+.title-banner .particles span:nth-child(1){ left:18%; bottom:-5%; animation-duration:11s; animation-delay:0s;  }
+.title-banner .particles span:nth-child(2){ left:34%; bottom:-5%; animation-duration:14s; animation-delay:2s;  background:rgba(13,148,136,0.8); }
+.title-banner .particles span:nth-child(3){ left:52%; bottom:-5%; animation-duration:9s;  animation-delay:1s;  }
+.title-banner .particles span:nth-child(4){ left:68%; bottom:-5%; animation-duration:13s; animation-delay:3s;  background:rgba(37,99,235,0.8); }
+.title-banner .particles span:nth-child(5){ left:82%; bottom:-5%; animation-duration:10s; animation-delay:1.5s;}
+.title-banner .particles span:nth-child(6){ left:46%; bottom:-5%; animation-duration:15s; animation-delay:4s;  }
+@keyframes floatUp {
+  0%   { transform: translateY(0)      scale(1);   opacity: 0; }
+  10%  { opacity: 0.9; }
+  90%  { opacity: 0.5; }
+  100% { transform: translateY(-110vh) scale(0.4); opacity: 0; }
+}
+
+.title-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(1rem, 2vw, 1.8rem);
+  padding: var(--pad);
+  padding-bottom: clamp(3.2rem, 6vw, 5.5rem);
+}
+.title-copy h1 {
+  font-size: clamp(2rem, 4.4vw, 3.4rem);
+  max-width: 18ch;
+}
+.statement {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.3rem, 0.6vw, 0.55rem);
+  padding-top: clamp(0.6rem, 1vw, 0.9rem);
+  border-top: 1px solid var(--border);
+  position: relative;
+}
+.statement::before {
+  content: '';
+  position: absolute;
+  top: -3px; left: 0;
+  width: 28px; height: 5px;
+  background: var(--statement-accent, var(--blue));
+}
+.statement.teal { --statement-accent: var(--teal); }
+.statement .lbl {
+  font-family: var(--font);
+  font-size: var(--small-size);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--statement-accent, var(--blue));
+}
+.statement p {
+  font-size: clamp(0.95rem, 1.4vw, 1.15rem);
+  color: var(--text);
+  line-height: 1.5;
+  max-width: 46ch;
+}
+/* Scroll hint */
+.scroll-hint {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(1rem, 2vw, 1.8rem);
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--mono);
+  font-size: var(--lbl-size);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  animation: hintBob 2.4s ease-in-out infinite;
+}
+.scroll-hint svg { width: 16px; height: 16px; stroke: var(--text-3); fill: none; stroke-width: 2; }
+@keyframes hintBob {
+  0%,100% { transform: translate(-50%, 0); opacity: 0.55; }
+  50%     { transform: translate(-50%, 6px); opacity: 1; }
+}
+
+/* ===========================================
+   9. SCENARIO BLOCK
+   =========================================== */
+.scenario {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--teal);
+  padding: clamp(1.1rem, 2vw, 1.8rem);
+  border-radius: 4px;
+  max-width: 72ch;
+}
+.scenario p { color: var(--text); font-size: clamp(0.9rem, 1.35vw, 1.1rem); line-height: 1.6; }
+.scenario p em { color: var(--text-2); font-style: italic; }
+
+.aside {
+  font-style: italic;
+  color: var(--text-3);
+  font-size: var(--small-size);
+  max-width: 70ch;
+}
+
+/* ===========================================
+  10. COMPARISON TABLE
+   =========================================== */
+.comparison {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--body-size);
+  max-width: 100%;
+}
+.comparison th {
+  font-family: var(--font);
+  font-weight: 500;
+  font-size: var(--small-size);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  text-align: left;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+}
+.comparison td {
+  padding: 0.7rem 0.8rem;
+  border-bottom: 1px solid var(--border-2);
+  color: var(--text-2);
+  vertical-align: top;
+}
+.comparison .row-label {
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.comparison tr:last-child td { border-bottom: none; font-weight: 600; }
+.comparison tr:last-child td:last-child { color: var(--teal); }
+/* staggered row reveal */
+.comparison tbody tr {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 550ms var(--ease), transform 550ms var(--ease);
+}
+.slide.visible .comparison tbody tr { opacity: 1; transform: translateY(0); }
+.slide.visible .comparison tbody tr:nth-child(1) { transition-delay: 0.30s; }
+.slide.visible .comparison tbody tr:nth-child(2) { transition-delay: 0.40s; }
+.slide.visible .comparison tbody tr:nth-child(3) { transition-delay: 0.50s; }
+.slide.visible .comparison tbody tr:nth-child(4) { transition-delay: 0.60s; }
+.slide.visible .comparison tbody tr:nth-child(5) { transition-delay: 0.70s; }
+.comparison tbody tr:hover td { background: rgba(13,148,136,0.04); }
+
+/* ===========================================
+  11. RAG vs KG VISUALIZATION
+   =========================================== */
+.viz-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(1rem, 2.5vw, 2.5rem);
+  max-width: 100%;
+}
+@media (max-width: 800px) { .viz-grid { grid-template-columns: 1fr; } }
+.viz-panel {
+  padding: clamp(1rem, 1.8vw, 1.5rem);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 4px;
+  min-height: clamp(200px, 32vh, 320px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 1vw, 0.9rem);
+}
+.viz-panel .viz-title {
+  font-family: var(--mono);
+  font-size: var(--lbl-size);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-3);
+  text-align: center;
+}
+.rag-chunks {
+  display: flex; flex-direction: column;
+  gap: 0.4rem; align-items: center;
+}
+.rag-chunk {
+  width: 85%;
+  padding: 0.5rem 0.7rem;
+  border-radius: 4px;
+  font-size: var(--small-size);
+  text-align: center;
+  background: var(--bg-2);
+  border: 1px solid var(--border-2);
+  color: var(--text-3);
+  transition: all 0.5s var(--ease);
+}
+.slide.visible .rag-chunk { animation: chunkScan 2.5s ease-in-out infinite; }
+.slide.visible .rag-chunk:nth-child(1) { animation-delay: 0s; }
+.slide.visible .rag-chunk:nth-child(2) { animation-delay: 0.5s; }
+.slide.visible .rag-chunk:nth-child(3) { animation-delay: 1s; }
+.slide.visible .rag-chunk:nth-child(4) { animation-delay: 1.5s; }
+.slide.visible .rag-chunk:nth-child(5) { animation-delay: 2s; }
+@keyframes chunkScan {
+  0%,80%,100% { background: var(--bg-2); border-color: var(--border-2); color: var(--text-3); transform: translateX(0); }
+  20%,60% { background: rgba(37,99,235,0.08); border-color: rgba(37,99,235,0.4); color: var(--text); transform: translateX(4px); }
+}
+.viz-result {
+  text-align: center;
+  padding: 0.6rem;
+  border-radius: 4px;
+  font-size: var(--small-size);
+  background: rgba(37,99,235,0.05);
+  border: 1px dashed rgba(37,99,235,0.3);
+  color: var(--text-2);
+}
+.viz-result.teal {
+  background: rgba(13,148,136,0.05);
+  border-color: rgba(13,148,136,0.35);
+}
+.kg-graph {
+  position: relative;
+  width: 100%;
+  height: clamp(150px, 22vh, 220px);
+  margin: 0 auto;
+}
+.kg-node {
+  position: absolute;
+  padding: 0.35rem 0.7rem;
+  border-radius: 9999px;
+  font-size: clamp(0.6rem, 0.85vw, 0.72rem);
+  font-weight: 600;
+  white-space: nowrap;
+  background: rgba(13,148,136,0.1);
+  border: 1px solid rgba(13,148,136,0.4);
+  color: var(--text);
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+.slide.visible .kg-node {
+  animation: nodePop 0.6s var(--ease-back) backwards;
+}
+@keyframes nodePop {
+  0%   { transform: translate(-50%, -50%) scale(0);   opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+}
+.kg-node.center {
+  background: rgba(13,148,136,0.2);
+  border-color: var(--teal);
+  box-shadow: 0 0 24px rgba(13,148,136,0.2);
+}
+.slide.visible .kg-node.center {
+  animation: nodePop 0.55s var(--ease-back) backwards, kgPulse 3s ease-in-out 1s infinite;
+}
+@keyframes kgPulse {
+  0%,100% { box-shadow: 0 0 16px rgba(13,148,136,0.15); }
+  50% { box-shadow: 0 0 34px rgba(13,148,136,0.4); }
+}
+.kg-edge {
+  position: absolute;
+  height: 1px;
+  transform-origin: left center;
+  z-index: 1;
+}
+.kg-edge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(13,148,136,0.4);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+.slide.visible .kg-edge::before {
+  animation: drawEdge 0.7s var(--ease) forwards 0.55s;
+}
+@keyframes drawEdge { to { transform: scaleX(1); } }
+.kg-edge::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 0;
+  width: 5px; height: 5px;
+  margin-top: -2.5px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 8px var(--teal);
+  opacity: 0;
+}
+.slide.visible .kg-edge::after {
+  animation: edgePacket 2.6s ease-in-out infinite 1.3s;
+}
+@keyframes edgePacket {
+  0%   { left: 0;   opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+/* ===========================================
+  12. CODE BLOCK
+   =========================================== */
+.codeblock {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--teal);
+  border-radius: 4px;
+  padding: clamp(1rem, 1.8vw, 1.5rem);
+  font-family: var(--mono);
+  font-size: var(--mono-size);
+  line-height: 1.8;
+  color: var(--text-2);
+  max-width: 60ch;
+  white-space: pre-wrap;
+  position: relative;
+  overflow: hidden;
+}
+/* scan-line sweep when revealed */
+.codeblock::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -40%;
+  width: 40%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(13,148,136,0.10), transparent);
+  pointer-events: none;
+}
+.slide.visible .codeblock::after { animation: codeSweep 1.4s var(--ease) 0.5s; }
+@keyframes codeSweep {
+  0%   { left: -40%; }
+  100% { left: 140%; }
+}
+.codeblock .c { color: var(--text-3); }
+.codeblock .k { color: var(--blue); font-weight: 600; }
+.codeblock .cursor {
+  display: inline-block;
+  width: 7px; height: 1.05em;
+  background: var(--teal);
+  vertical-align: text-bottom;
+  margin-left: 2px;
+  animation: blink 1.1s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+
+/* ===========================================
+  12b. SPLIT LAYOUT (text left, diagram right)
+   =========================================== */
+.split-2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: clamp(1.2rem, 3vw, 3rem);
+  align-items: center;
+  width: 100%;
+}
+.split-2 > .col-left,
+.split-2 > .col-right {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+.split-2 .codeblock { max-width: none; }
+@media (max-width: 900px) {
+  .split-2 { grid-template-columns: 1fr; }
+  .split-2 .col-right { display: none; }
+}
+
+/* Compiler diagram (slide 7) — source stack → compiled entities */
+.compile-diagram {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 1vw, 0.8rem);
+  padding: clamp(1rem, 1.8vw, 1.6rem);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 4px;
+}
+.compile-diagram .stage-lbl {
+  font-family: var(--mono);
+  font-size: var(--lbl-size);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.source-stack {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+.source-doc {
+  padding: 0.45rem 0.6rem;
+  font-family: var(--mono);
+  font-size: clamp(0.6rem, 0.85vw, 0.74rem);
+  background: var(--bg-2);
+  border: 1px solid var(--border-2);
+  border-left: 2px solid var(--text-3);
+  border-radius: 3px;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.source-doc .ico {
+  width: 8px; height: 8px; border-radius: 1px;
+  background: var(--text-3); opacity: 0.6; flex-shrink: 0;
+}
+.source-doc:nth-child(1) { border-left-color: var(--blue); }
+.source-doc:nth-child(2) { border-left-color: var(--teal); }
+.source-doc:nth-child(3) { border-left-color: var(--amber); }
+.source-doc:nth-child(4) { border-left-color: var(--text-3); }
+.compile-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--mono);
+  font-size: var(--lbl-size);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--teal);
+  padding: 0.2rem 0;
+}
+.compile-arrow::before,
+.compile-arrow::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--teal), transparent);
+  background-size: 200% 100%;
+  opacity: 0.7;
+}
+.slide.visible .compile-arrow::before,
+.slide.visible .compile-arrow::after {
+  animation: flowDash 2s linear infinite;
+}
+@keyframes flowDash {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.entity-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.7rem 0.8rem;
+  background: rgba(13,148,136,0.04);
+  border: 1px solid rgba(13,148,136,0.3);
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: clamp(0.62rem, 0.88vw, 0.76rem);
+}
+.entity-block .ent-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  color: var(--text-2);
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 450ms var(--ease), transform 450ms var(--ease);
+}
+.slide.visible .entity-block .ent-row { opacity: 1; transform: translateX(0); }
+.slide.visible .entity-block .ent-row:nth-child(1) { transition-delay: 0.7s; }
+.slide.visible .entity-block .ent-row:nth-child(2) { transition-delay: 0.85s; }
+.slide.visible .entity-block .ent-row:nth-child(3) { transition-delay: 1.0s; }
+.slide.visible .entity-block .ent-row:nth-child(4) { transition-delay: 1.15s; }
+.entity-block .ent-row .type {
+  color: var(--blue);
+  font-weight: 600;
+  min-width: 5.5em;
+}
+.entity-block .ent-row .name { color: var(--text); }
+.entity-block .ent-row.edge .type { color: var(--teal); }
+.slide.visible .source-doc {
+  animation: docPulse 4s ease-in-out infinite;
+}
+.slide.visible .source-doc:nth-child(1) { animation-delay: 0s; }
+.slide.visible .source-doc:nth-child(2) { animation-delay: 0.4s; }
+.slide.visible .source-doc:nth-child(3) { animation-delay: 0.8s; }
+.slide.visible .source-doc:nth-child(4) { animation-delay: 1.2s; }
+@keyframes docPulse {
+  0%, 70%, 100% { background: var(--bg-2); }
+  20%, 35%      { background: rgba(13,148,136,0.06); }
+}
+
+/* MCP flow diagram (slide 9) — agent ↔ wiki */
+.mcp-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: clamp(1rem, 1.8vw, 1.6rem);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 4px;
+}
+.mcp-node {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  transition: border-color 300ms var(--ease), box-shadow 300ms var(--ease);
+}
+.mcp-node:hover { border-color: rgba(37,99,235,0.4); box-shadow: 0 4px 18px rgba(0,0,0,0.05); }
+.mcp-node .badge {
+  font-family: var(--mono);
+  font-size: var(--lbl-size);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.45rem;
+  border-radius: 3px;
+  background: var(--text);
+  color: #fff;
+}
+.mcp-node.agent .badge { background: var(--blue); }
+.mcp-node.wiki  .badge { background: var(--teal); }
+.mcp-node .name {
+  font-weight: 600;
+  color: var(--text);
+  font-size: var(--small-size);
+}
+.mcp-node .examples {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: clamp(0.6rem, 0.8vw, 0.72rem);
+  color: var(--text-3);
+}
+.mcp-pipe {
+  position: relative;
+  align-self: center;
+  width: 2px;
+  height: clamp(40px, 7vh, 64px);
+  background: linear-gradient(180deg, var(--blue), var(--teal));
+  border-radius: 1px;
+}
+.mcp-pipe .lbl-down,
+.mcp-pipe .lbl-up {
+  position: absolute;
+  font-family: var(--mono);
+  font-size: clamp(0.58rem, 0.78vw, 0.7rem);
+  white-space: nowrap;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.mcp-pipe .lbl-down { left: 10px; color: var(--blue); }
+.mcp-pipe .lbl-up   { right: 10px; color: var(--teal); }
+.mcp-pipe::before,
+.mcp-pipe::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+.mcp-pipe::before { top: 0; background: var(--blue); }
+.mcp-pipe::after  { bottom: 0; background: var(--teal); }
+.mcp-pipe .packet {
+  position: absolute;
+  left: 50%;
+  width: 8px; height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 0 12px var(--blue);
+}
+.slide.visible .mcp-pipe .packet {
+  animation: packet 2.8s ease-in-out infinite;
+}
+@keyframes packet {
+  0%   { top: 0;   background: var(--blue); box-shadow: 0 0 12px var(--blue); opacity: 0; }
+  10%  { opacity: 1; }
+  45%  { top: 100%; background: var(--blue); box-shadow: 0 0 12px var(--blue); opacity: 1; }
+  50%  { top: 100%; background: var(--teal); box-shadow: 0 0 12px var(--teal); opacity: 1; }
+  90%  { top: 0;    background: var(--teal); box-shadow: 0 0 12px var(--teal); opacity: 1; }
+  100% { top: 0;    opacity: 0; }
+}
+
+/* ===========================================
+  13. ARCH FLOW
+   =========================================== */
+.arch-flow {
+  display: flex;
+  align-items: stretch;
+  gap: clamp(0.6rem, 1.5vw, 1.5rem);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.arch-box {
+  flex: 1;
+  min-width: clamp(140px, 18vw, 220px);
+  max-width: 280px;
+  padding: clamp(0.9rem, 1.5vw, 1.3rem);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  position: relative;
+  transition: transform 400ms var(--ease), box-shadow 400ms var(--ease);
+}
+.arch-box:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.06); }
+.arch-box.highlight {
+  border-color: rgba(13,148,136,0.45);
+  background: rgba(13,148,136,0.04);
+}
+.slide.visible .arch-box.highlight { animation: archGlow 3s ease-in-out 0.8s infinite; }
+@keyframes archGlow {
+  0%,100% { box-shadow: 0 0 0 rgba(13,148,136,0); }
+  50%     { box-shadow: 0 0 26px rgba(13,148,136,0.18); }
+}
+.arch-box .step-num {
+  font-family: var(--mono);
+  font-size: var(--lbl-size);
+  color: var(--teal);
+  letter-spacing: 0.08em;
+}
+.arch-box h3 { font-size: clamp(0.95rem, 1.5vw, 1.15rem); }
+.arch-box p { font-size: var(--small-size); }
+.arch-box .mono { color: var(--text-3); margin-top: 0.3rem; }
+.arch-arrow {
+  align-self: center;
+  font-size: clamp(1rem, 1.8vw, 1.4rem);
+  color: var(--teal);
+  opacity: 0.6;
+}
+.slide.visible .arch-arrow { animation: arrowNudge 1.8s ease-in-out infinite; }
+@keyframes arrowNudge {
+  0%,100% { transform: translateX(0); opacity: 0.4; }
+  50%     { transform: translateX(5px); opacity: 0.9; }
+}
+@media (max-width: 800px) {
+  .arch-flow { flex-direction: column; }
+  .arch-arrow { transform: rotate(90deg); }
+  .slide.visible .arch-arrow { animation: none; }
+}
+
+/* ===========================================
+  14. CLOSING SLIDE
+   =========================================== */
+.closing { justify-content: center; align-items: flex-start; }
+.closing .big {
+  font-size: clamp(2.4rem, 6vw, 4.6rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.04;
+  color: var(--text);
+  max-width: 18ch;
+}
+.closing .big .em {
+  color: var(--teal);
+  background: linear-gradient(90deg, var(--teal), #34d399, var(--teal));
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 5s linear infinite;
+}
+@keyframes shimmer {
+  0%   { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
+}
+.closing .tag {
+  font-family: var(--mono);
+  font-size: var(--small-size);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-top: clamp(0.6rem, 1vw, 1rem);
+}
+
+/* ===========================================
+  15. RESPONSIVE
+   =========================================== */
+@media (max-height: 700px) {
+  :root {
+    --pad: clamp(1.2rem, 3vw, 2.5rem);
+    --gap: clamp(0.6rem, 1.4vw, 1.2rem);
+  }
+}
+@media (max-height: 600px) {
+  :root {
+    --pad: clamp(0.9rem, 2.5vw, 1.8rem);
+    --title-size: clamp(1.6rem, 4.5vw, 2.4rem);
+    --h2-size:    clamp(1.2rem, 3vw,   1.8rem);
+  }
+  .slide-footer { display: none; }
+}
+@media (max-height: 500px) {
+  :root { --body-size: clamp(0.7rem, 1vw, 0.85rem); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 200ms !important;
+  }
+  .reveal { transform: none; }
+  .accent-line, .card::before { transform: scaleX(1); }
+  html { scroll-behavior: auto; }
+}
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+<nav class="nav-dots" id="navDots" aria-label="Slide navigation"></nav>
+
+<!-- JPMC LOGO SYMBOL -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="jpmc-logo" viewBox="0 0 1000 141.83">
+      <path d="M267.52,104.26c2.51,1.01,6.23,1.66,11.16,1.96v2.11h-55.64v-2.11c4.92-0.3,8.65-0.95,11.16-1.96c2.51-1,4.25-2.61,5.2-4.83c0.95-2.21,1.43-5.48,1.43-9.8V22.37h-0.45l-38.15,87.92h-0.45l-40.87-87.61h-0.45v66.95c0,4.32,0.5,7.59,1.51,9.8c1,2.21,2.74,3.82,5.2,4.83c2.46,1.01,6.16,1.66,11.08,1.96v2.11H135.8v-2.11c4.92-0.3,8.62-0.95,11.08-1.96c2.46-1,4.2-2.61,5.2-4.83c1-2.21,1.51-5.48,1.51-9.8V22.22c0-4.32-0.5-7.59-1.51-9.8c-1.01-2.21-2.74-3.82-5.2-4.83c-2.47-1-6.16-1.66-11.08-1.96V3.52h38.08l34.78,75.93l33.73-75.93h36.29v2.11c-4.93,0.3-8.65,0.96-11.16,1.96c-2.51,1.01-4.27,2.64-5.28,4.9c-1.01,2.26-1.51,5.5-1.51,9.73v67.41c0,4.32,0.5,7.59,1.51,9.8C263.25,101.65,265.01,103.25,267.52,104.26z M343.12,53.44c3.11,5.73,4.67,12.21,4.67,19.45c0,7.24-1.56,13.72-4.67,19.45c-3.12,5.73-7.46,10.16-13.04,13.27c-5.58,3.12-11.94,4.68-19.08,4.68c-7.14,0-13.47-1.56-19-4.68c-5.53-3.11-9.88-7.54-13.04-13.27c-3.17-5.73-4.75-12.21-4.75-19.45c0-7.24,1.58-13.72,4.75-19.45s7.51-10.15,13.04-13.27c5.53-3.12,11.86-4.68,19-4.68c7.14,0,13.5,1.56,19.08,4.68C335.66,43.29,340,47.71,343.12,53.44z M328.04,72.89c0-7.14-0.68-13.27-2.04-18.4c-1.36-5.13-3.32-9.02-5.88-11.69c-2.56-2.66-5.61-4-9.12-4c-3.52,0-6.56,1.33-9.12,4c-2.56,2.67-4.52,6.56-5.88,11.69c-1.36,5.13-2.04,11.26-2.04,18.4c0,7.14,0.68,13.27,2.04,18.4c1.36,5.13,3.32,9.02,5.88,11.69c2.56,2.67,5.6,4,9.12,4c3.52,0,6.56-1.33,9.12-4c2.56-2.66,4.52-6.56,5.88-11.69C327.36,86.16,328.04,80.03,328.04,72.89z M398.92,51.63c2.61,0,4.98,0.45,7.09,1.36V36.4c-1.31-0.6-2.86-0.9-4.67-0.9c-4.63,0-8.72,2.04-12.29,6.11c-3.57,4.07-6.35,8.75-8.93,18.07h-0.34V36.1h-0.6l-29.86,8.6v1.96c3.42,0,6.06,0.33,7.92,0.98c1.86,0.65,3.19,1.71,4,3.17c0.8,1.46,1.21,3.44,1.21,5.96v37.4c0,3.12-0.3,5.43-0.9,6.94c-0.6,1.51-1.71,2.64-3.32,3.39c-1.61,0.75-4.17,1.33-7.69,1.73v2.11h41.92v-2.11c-3.52-0.3-6.16-0.83-7.92-1.58c-1.76-0.75-2.99-1.91-3.69-3.47c-0.7-1.56-1.06-3.9-1.06-7.01V64.53C382.95,57.1,389.91,51.63,398.92,51.63z M453.56,46.52 M618.97,101.02c-0.6-1.56-0.9-3.89-0.9-7.01V59.62c0-16.15-8.94-24.13-20.66-24.13c-11.72,0-19.25,8.3-22.47,12.72h-0.3V36.1h-0.6l-29.86,8.6v1.96c3.32,0,5.93,0.33,7.84,0.98c1.91,0.65,3.27,1.68,4.07,3.09c0.8,1.41,1.21,3.37,1.21,5.88V94c0,3.12-0.3,5.46-0.9,7.01c-0.6,1.56-1.71,2.71-3.32,3.47c-1.61,0.75-4.17,1.33-7.69,1.73v2.11h39.21v-2.11c-2.71-0.4-4.8-0.98-6.26-1.73c-1.46-0.75-2.44-1.91-2.94-3.47c-0.5-1.56-0.75-3.89-0.75-7.01V53.69c3.47-4.21,7.55-8.25,14.18-8.25c9.11,0,11.91,6.87,11.91,14.63V94c0,3.12-0.28,5.46-0.83,7.01c-0.55,1.56-1.51,2.71-2.87,3.47c-1.36,0.75-3.44,1.33-6.26,1.73v2.11h38.76v-2.11c-3.32-0.4-5.76-0.98-7.31-1.73C620.65,103.73,619.58,102.58,618.97,101.02z M1000,87.52c-3.33,7.27-12.62,22.77-31.52,22.77c-17.95,0-32.87-14.68-32.87-36.79c0-6.94,1.51-13.32,4.52-19.15c3.02-5.83,7.11-10.43,12.29-13.8c5.18-3.37,10.88-5.05,17.12-5.05c18.11,0,27.14,12.76,27.14,26.06v3h-44.93c0,0.27-0.01,0.53-0.01,0.8c0,16,7.12,31.37,25.03,31.37c13.62,0,19.32-7.54,21.56-10.25L1000,87.52z M952.06,59.47h28.18c-0.19-10.93-3.45-20.47-12.36-20.51C959.52,38.93,953.46,46.73,952.06,59.47z M799.99,101.02c-0.6-1.56-0.9-3.89-0.9-7.01V59.62c0-5.23-0.88-9.65-2.64-13.27c-1.76-3.62-4.2-6.33-7.31-8.14c-3.12-1.81-6.69-2.71-10.71-2.71c-4.63,0-8.72,1.18-12.29,3.54c-3.57,2.36-6.96,5.76-10.18,10.18h-0.3V0h-0.6L725.2,8.6v1.96c3.32,0,5.93,0.33,7.84,0.98c1.91,0.65,3.27,1.68,4.07,3.09c0.8,1.41,1.21,3.37,1.21,5.88V94c0,3.12-0.3,5.46-0.9,7.01c-0.6,1.56-1.71,2.71-3.32,3.47c-1.61,0.75-4.17,1.33-7.69,1.73v2.11h39.21v-2.11c-2.71-0.4-4.8-0.98-6.26-1.73c-1.46-0.75-2.44-1.91-2.94-3.47c-0.5-1.56-0.75-3.89-0.75-7.01V53.69c3.47-4.21,7.55-8.25,14.18-8.25c3.72,0,6.63,1.23,8.75,3.69c2.11,2.46,3.17,6.11,3.17,10.93V94c0,3.12-0.28,5.46-0.83,7.01c-0.55,1.56-1.51,2.71-2.87,3.47c-1.36,0.75-3.44,1.33-6.26,1.73v2.11h38.76v-2.11c-3.32-0.4-5.76-0.98-7.31-1.73C801.67,103.73,800.6,102.58,799.99,101.02z M690.46,101.82c-22.24,0.15-39.88-17.73-39.88-46.74c0-30.66,16.43-48.54,35.22-48.54c18.79,0,26.85,16.93,30.96,33.56l3.01-0.05V9.45c-7.06-3.91-18.64-8.32-35.47-8.32c-32.46,0-56.96,23.75-56.96,55.46c0,30.21,20.44,54.1,55.61,53.95c19.39-0.15,32.91-11.72,39.37-20.59l-2.1-2.25C715.86,92.66,707.14,101.67,690.46,101.82z M914.35,66.41l-10.4-4.98c-6.91-3.09-10.86-7.18-10.86-12.21c0-5.7,5.22-9.6,12.52-9.6c10.63,0,16.14,5.88,18.42,18.95h3.14v-19c-3.12-1.21-11.36-4.07-19.75-4.07c-16.59,0-26.69,10.43-26.69,22.47c0,4.63,1.23,8.67,3.69,12.14c2.46,3.47,6.16,6.46,11.08,8.97l10.86,5.43c7.43,3.39,10.41,6.73,10.41,11.76c0,5.56-4.48,9.91-12.97,9.91c-12.41,0-18.31-11.77-19.93-21.22h-3.14v19.45c4.73,3.06,13.63,5.88,21.87,5.88c15.9,0,26.99-9.74,26.99-23.52C929.58,76.84,924.28,70.63,914.35,66.41z M90.03,62.64v26.99c0,4.22,0.6,7.46,1.81,9.73c1.21,2.26,3.22,3.9,6.03,4.9c2.81,1.01,7.09,1.66,12.82,1.96v2.11H52.33v-2.11c4.92-0.3,8.62-0.95,11.08-1.96c2.46-1,4.2-2.61,5.2-4.83c1-2.21,1.51-5.48,1.51-9.8V22.68c0-13.79-6.23-16.59-15.69-16.59c-10.38,0-16.73,2.79-16.73,16.14v74.91c0,16.93-11,33.03-32.72,33.03c-1.68,0-3.34-0.1-4.98-0.29v-1.81c5.16-0.31,9.34-2.06,12.52-5.29c3.52-3.57,5.28-9.42,5.28-17.57V22.22c0-4.22-0.5-7.47-1.51-9.73c-1.01-2.26-2.77-3.89-5.28-4.9c-2.51-1-6.18-1.66-11.01-1.96V3.52h103.05c23.44,0,37.95,11.72,37.95,29.41c0,20.25-19.89,29.71-37.67,29.71H90.03z M90.03,58.59h7.19c12.23,0,22.52-7.16,22.52-25.51c0-22.43-14.81-25.51-22.15-25.51h-7.56V58.59z M538.1,102.31c2.49,0,4.68-1.09,6.07-2.03v3.58c-2.78,2.6-7.94,6.38-15.7,6.38c-6.54,0-12.03-4.15-13.49-10.48h-0.39c-2.55,4.82-10.34,10.91-18.84,10.91c-10.2,0-17.71-6.8-17.71-17.14c0-8.08,5.53-13.46,14.73-16.72l21.82-7.86V58.82c0-9.21-6.66-13.46-13.88-13.46c-7.37,0-14.17,3.12-21.25,10.34l-2.12-1.98c6.23-10.06,16.15-18.28,30.46-18.28c13.6,0,24.51,8.93,24.37,23.38l-0.28,36.13C531.87,100.04,534,102.31,538.1,102.31z M514.59,73.67l-8.78,3.56c-6.8,2.69-11.19,5.81-11.19,13.03c0,6.09,4.25,10.34,10.2,10.34c3.12,0,7.65-2.41,9.78-5.1V73.67z M871.01,102.31c2.5,0,4.68-1.1,6.08-2.03v3.58c-2.78,2.6-7.94,6.39-15.71,6.39c-6.54,0-12.03-4.15-13.49-10.48h-0.39c-2.55,4.82-10.34,10.91-18.84,10.91c-10.2,0-17.71-6.8-17.71-17.14c0-8.08,5.53-13.46,14.73-16.72l21.82-7.86V58.82c0-9.21-6.66-13.46-13.88-13.46c-7.37,0-14.17,3.12-21.25,10.34l-2.13-1.98c6.23-10.06,16.15-18.28,30.46-18.28c13.6,0,24.51,8.93,24.37,23.38l-0.28,36.13C864.78,100.04,866.9,102.31,871.01,102.31z M847.49,73.67l-8.78,3.56c-6.8,2.69-11.19,5.81-11.19,13.03c0,6.09,4.25,10.34,10.2,10.34c3.12,0,7.65-2.41,9.78-5.1V73.67z M460.13,40.45c6.45,5.03,9.3,12.27,9.3,18.45c0,16.23-13.87,24.64-29.66,24.64c-4.16,0-8.18-0.59-11.85-1.75c-2.04,1.57-3.79,3.62-3.79,6.02c0,5.16,8.41,6.2,13.43,6.49l17.12,1.18c13.72,0.89,22.42,5.75,22.42,18c0,15.49-18.32,28.33-45,28.33c-15.49,0-26.56-5.31-26.56-14.76c0-8.21,4.52-12.91,16.14-18.49c-7.6-2.21-9.36-6.74-9.36-11.17c0-6.06,5.41-11.5,12.74-16.66c-8.78-3.7-14.95-11.03-14.95-21.85c0-16.23,13.87-24.64,29.66-24.64c7.26,0,13.04,1.65,17.49,4.24c3.32-6.67,9.87-14.43,21.61-14.43v13.85C472.6,35.96,464.95,36.97,460.13,40.45z M417.93,120.58c0,8.56,9.74,12.39,22.43,12.39c12.1,0,28.47-5.46,28.47-14.17c0-5.02-2.8-6.2-10.18-6.79L429,109.81c-1.74-0.13-3.31-0.33-4.72-0.6C420.01,112.54,417.93,115.96,417.93,120.58z M451.13,58.91c0-13.87-4.57-20.51-11.36-20.51s-11.36,6.64-11.36,20.51s4.57,20.51,11.36,20.51S451.13,72.78,451.13,58.91z"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ============================================================
+     SLIDE 1 — TITLE
+     ============================================================ -->
+<section class="slide title-slide" data-title="Title">
+  <div class="slide-content">
+    <div class="title-split">
+      <div class="title-banner reveal">
+        <div class="particles">
+          <span></span><span></span><span></span>
+          <span></span><span></span><span></span>
+        </div>
+        <div class="orbit"></div>
+        <div class="pulse"><div class="core"></div></div>
+        <div class="kicker">Innovation Week 2026</div>
+      </div>
+      <div class="title-copy">
+        <span class="lbl reveal">A Knowledge System</span>
+        <h1 class="reveal">A Knowledge System for Agents.</h1>
+        <div class="statement teal reveal">
+          <span class="lbl">Premise</span>
+          <p>Same docs. Different surface. A compiled wiki built for agents to query — not humans to read.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-hint">
+    <span>Scroll</span>
+    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+  </div>
+  <footer class="slide-footer">
+    <div class="logo"><svg><use href="#jpmc-logo"/></svg></div>
+    <div class="meta"><span>Title</span><span class="sep">/</span><span>01 / 12</span></div>
+  </footer>
+</section>
+
+<!-- ============================================================
+     SLIDE 2 — COLD OPEN
+     ============================================================ -->
+<section class="slide" data-title="Scene">
+  <div class="slide-content">
+    <div class="eyebrow reveal">
+      <span class="lbl">The scene</span>
+      <h2>Monday morning. New Go engineer.</h2>
+      <div class="accent-line teal"></div>
+    </div>
+    <div class="scenario reveal">
+      <p>They open their coding agent and type: <em>"Set me up."</em> The agent searches internal docs. Finds fragments across Confluence, GitHub READMEs, Slack threads, setup scripts. Returns a plausible-looking runbook — except the cert workaround is from 2023, and the VPN step references a tool the team deprecated in January.</p>
+    </div>
+    <p class="aside reveal">Every engineer in this room has lived some version of this. The docs exist. The knowledge doesn't reach the tools.</p>
+  </div>
+  <footer class="slide-footer">
+    <div class="logo"><svg><use href="#jpmc-logo"/></svg></div>
+    <div class="meta"><span>Scene</span><span class="sep">/</span><span>02 / 12</span></div>
+  </footer>
+</section>
+
+<!-- ============================================================
+     SLIDE 3 — THE GAP
+     ============================================================ -->
+<section class="slide" data-title="Gap">
+  <div class="slide-content">
+    <div class="eyebrow reveal">
+      <span class="lbl">The gap</span>
+      <h2>We built search for humans.<br/>Developers work through agents.</h2>
+      <div class="accent-line"></div>
+    </div>
+    <p class="reveal">Internal search solves a real problem: a human asks a question, reads prose, clicks a citation. But developers don't live in browsers anymore. When the consumer is an agent, prose is the wrong shape.</p>
+    <ul class="bullets reveal">
+      <li>Prose bloats context — every query burns tokens on language the agent re-parses</li>
+      <li>Chat interfaces don't compose — agents can't pipeline a UI into a tool call</li>
+      <li>No structure to traverse — <em>"what depends on Service X"</em> can't be answered from a paragraph</li>
+      <li>Citations are for humans to click, not agents to act on</li>
+    </ul>
+  </div>
+  <footer class="slide-footer">
+    <div class="logo"><svg><use href="#jpmc-logo"/></svg></div>
+    <div class="meta"><span>Gap</span><span class="sep">/</span><span>03 / 12</span></div>
+  </footer>
+</section>
+
+<!-- ============================================================
+     SLIDE 4 — RELATIONAL QUESTIONS
+     ============================================================ -->
+<section class="slide" data-title="Relational">
+  <div class="slide-content">
+    <div class="eyebrow reveal">
+      <span class="lbl">The problem with retrieval</span>
+      <h2>Relational questions break search.</h2>
+      <div class="accent-line amber"></div>
+    </div>
+    <p class="reveal">Internal search — and any RAG system — answers questions when the answer lives inside a single retrieved chunk. But the questions agents ask are relational.</p>
+    <div class="grid cols-3">
+      <div class="card top-blue reveal">
+        <span class="card-label">Traversal</span>
+        <h3>"What services does the auth middleware depend on?"</h3>
+        <p>Requires walking a dependency graph, not searching a paragraph.</p>
+      </div>
+      <div class="card top-teal reveal">
+        <span class="card-label">Sequencing</span>
+        <h3>"What's the setup order for local dev?"</h3>
+        <p>Requires sequencing knowledge spread across ten documents.</p>
+      </div>
+      <div class="card top-amber reveal">
+        <span class="card-label">Joining</span>
+        <h3>"Which teams own the services in this call chain?"</h3>
+        <p>Requires joining entity types RAG treats as unrelated text.</p>
+      </div>
+    </div>
+    <p class="aside reveal">A compiled wiki makes relationships first-class. Retrieval only finds them by luck.</p>
+  </div>
+  <footer class="slide-footer">
+    <div class="logo"><svg><use href="#jpmc-logo"/></svg></div>
+    <div class="meta"><span>Relational</span><span class="sep">/</span><span>04 / 12</span></div>
+  </footer>
+</section>
+
+<!-- ============================================================
+     SLIDE 5 — RAG vs KG VISUAL
+     ============================================================ -->
+<section class="slide" data-title="RAG vs KG">
+  <div class="slide-content">
+    <div class="eyebrow reveal">
+      <span class="lbl">Retrieval vs. structured knowledge</span>
+      <h2>One chunk vs. the full picture.</h2>
+      <div class="accent-line"></div>
+    </div>
+    <div class="viz-grid reveal">
+      <div class="viz-panel">
+        <div class="viz-title">RAG / Vector Search</div>
+        <div class="rag-chunks">
+          <div class="rag-chunk">chunk · auth.md §2</div>
+          <div class="rag-chunk">chunk · runbook §7</div>
+          <div class="rag-chunk">chunk · readme.md</div>
+          <div class="rag-chunk">chunk · slack thread</div>
+          <div class="rag-chunk">chunk · setup.sh</div>
+        </div>
+        <div class="viz-result">Returns 1 chunk. Context lost. No connections.</div>
+      </div>
+      <div class="viz-panel">
+        <div class="viz-title">Knowledge Graph</div>
+        <div class="kg-graph" id="kgGraph">
+          <div class="kg-node center" style="top:50%;left:50%;">auth-svc</div>
+          <div class="kg-node" style="top:12%;left:22%;animation-delay:0.65s;">redis</div>
+          <div class="kg-node" style="top:12%;left:78%;animation-delay:0.8s;">user-svc</div>
+          <div class="kg-node" style="top:88%;left:22%;animation-delay:0.95s;">team:platform</div>
+          <div class="kg-node" style="top:88%;left:78%;animation-delay:1.1s;">runbook</div>
+        </div>
+        <div class="viz-result teal">Returns entity + all connections. Full traversal.</div>
+      </div>
+    </div>
+  </div>
+  <footer class="slide-footer">
+    <div class="logo"><svg><use href="#jpmc-logo"/></svg></div>
+    <div class="meta"><span>Visual</span><span class="sep">/</span><span>05 / 12</span></div>
+  </footer>
+</section>
+
+<!-- ============================================================
+     SLIDE 6 — COMPARISON TABLE
+     ============================================================ -->
+<section class="slide" data-title="Shift">
+  <div class="slide-content">
+    <div class="eyebrow reveal">
+      <span class="lbl">The architectural shift</span>
+      <h2>Query-time vs. compile-time.</h2>
+      <div class="accent-line teal"></div>
+    </div>
+    <p class="reveal">Two fundamentally different approaches to the same raw documents.</p>
+    <div class="reveal" style="max-width:100%; overflow:auto;">
+      <table class="comparison">
+        <thead>
+          <tr><th></th><th>Query-time (RAG / Search)</th><th>Compile-time (This)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="row-label">When LLM runs</td><td>Every query</td><td>Once, at ingest</td></tr>
+          <tr><td class="row-label">Shape of answer</td><td>Best-effort prose</td><td>Typed entity + relations</td></tr>
+          <tr><td class="row-label">Latency</td><td>Seconds (LLM call)</td><td>Milliseconds (lookup)</td></tr>
+          <tr><td class="row-label">Determinism</td><td>Variable per call</td><td>Versioned, repeatable</td></tr>
+          <tr><td class="row-label">Best for</td><td>Open-ended questions</td><td>Structured, relational queries</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <footer class="slide-footer">
+    <div class="logo"><svg><use href="#jpmc-logo"/></svg></div>
+    <div class="meta"><span>Shift</span><span class="sep">/</span><span>06 / 12</span></div>
+  </footer>
+</section>
+
+<!-- ============================================================
+     SLIDE 7 — COMPILER METAPHOR
+     ============================================================ -->
+<section class="slide" data-title="Compiler">
+  <div class="slide-content">
+    <div class="eyebrow reveal">
+      <span class="lbl">The mental model</span>
+      <h2>Think of it as a compiler.</h2>
+      <div class="accent-line"></div>
+    </div>
+    <div class="split-2">
+      <div class="col-left">
+        <p class="reveal from-left">Raw documentation is source code — human-readable, scattered, full of implicit context. This system compiles it into a structured artifact that agents can execute against.</p>
+        <div class="codeblock reveal from-left"><span class="c">// source</span>
+Confluence pages, READMEs, Slack threads, runbooks
+
+<span class="c">// compiled output</span>
+<span class="k">Typed entities</span>: Service, Tool, Procedure, Policy
+<span class="k">With edges</span>: depends_on, owned_by, prerequisite_of
+Versioned. Deterministic. Instantly queryable.<span class="cursor"></span></div>
+        <p class="aside reveal">LLM reasoning happens once at compile time. Every query after that is a cheap structured lookup.</p>
+      </div>
+      <div class="col-right">
+        <div class="compile-diagram reveal scale-in">
+          <span class="stage-lbl">Source · unstructured</span>
+          <div class="source-stack">
+            <div class="source-doc"><span class="ico"></span>auth.md</div>
+            <div class="source-doc"><span class="ico"></span>readme.md</div>
+            <div class="source-doc"><span class="ico"></span>#deploy-chat</div>
+            <div class="source-doc"><span class="ico"></span>setup.sh</div>
+          </div>
+          <div class="compile-arrow">compile</div>
+          <span class="stage-lbl">Compiled · typed graph</span>
+          <div class="entity-block">
+            <div class="ent-row"><span class="type">Service</span><span class="name">auth-svc</span></div>
+            <div class="ent-row"><span class="type">Procedure</span><span class="name">go-local-dev</span></div>
+            <div class="ent-row edge"><span class="type">depends_on</span><span class="name">→ redis, user-svc</span></div>
+            <div class="ent-row edge"><span class="type">owned_by</span><span class="name">→ team:platform</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer class="slide-footer">
+    <div class="logo"><svg><use href="#jpmc-logo"/></svg></div>
+    <div class="meta"><span>Compiler</span><span class="sep">/</span><span>07 / 12</span></div>
+  </footer>
+</section>
+
+<!-- ============================================================
+     SLIDE 8 — ARCHITECTURE
+     ============================================================ -->
+<section class="slide" data-title="Architecture">
+  <div class="slide-content">
+    <div class="eyebrow reveal">
+      <span class="lbl">How it works</span>
+      <h2>Three layers.</h2>
+      <div class="accent-line teal"></div>
+    </div>
+    <div class="arch-flow reveal">
+      <div class="arch-box">
+        <span class="step-num">01 · SOURCES</span>
+        <h3>Sources</h3>
+        <p>Confluence, GHE, Slack, scripts.</p>
+        <span class="mono">webhooks trigger ingest</span>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-box highlight">
+        <span class="step-num">02 · COMPILER</span>
+        <h3>Compiler</h3>
+        <p>LLM extracts entities, resolves relationships, validates schema.</p>
+        <span class="mono">runs once per change</span>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-box">
+        <span class="step-num">03 · WIKI</span>
+        <h3>Wiki</h3>
+        <p>Structured knowledge graph, typed entities, versioned.</p>
+        <span class="mono">MCP server / API</span>
+      </div>
+    </div>
+    <p class="aside reveal" style="text-align:center;">Eval harness gates every promotion. Bad compiles don't ship.</p>
+  </div>
+  <footer class="slide-footer">
+    <div class="logo"><svg><use href="#jpmc-logo"/></svg></div>
+    <div class="meta"><span>Architecture</span><span class="sep">/</span><span>08 / 12</span></div>
+  </footer>
+</section>
+
+<!-- ============================================================
+     SLIDE 9 — QUERY INTERFACE
+     ============================================================ -->
+<section class="slide" data-title="Interface">
+  <div class="slide-content">
+    <div class="eyebrow reveal">
+      <span class="lbl">The interface</span>
+      <h2>Any agent. Any tool.</h2>
+      <div class="accent-line"></div>
+    </div>
+    <div class="split-2">
+      <div class="col-left">
+        <p class="reveal from-left">The query layer speaks MCP — an open protocol any coding assistant can consume. Today: Claude Code, Cursor, Copilot. Tomorrow: whatever replaces them. The wiki doesn't care.</p>
+        <div class="codeblock reveal from-left"><span class="c">// agent asks</span>
+tool: <span class="k">"wiki.lookup"</span>
+params: { entity: <span class="k">"go-local-dev"</span>, type: <span class="k">"Procedure"</span> }
+
+<span class="c">// wiki returns</span>
+{ steps: [...], prerequisites: [...], troubleshooting: [...] }<span class="cursor"></span></div>
+        <p class="reveal">Search returns prose a human reads. This returns structured entities an agent acts on.</p>
+      </div>
+      <div class="col-right">
+        <div class="mcp-flow reveal scale-in">
+          <div class="mcp-node agent">
+            <span class="badge">Agent</span>
+            <span class="name">Coding assistant</span>
+            <span class="examples">Claude · Cursor · Copilot</span>
+          </div>
+          <div class="mcp-pipe">
+            <span class="lbl-down">wiki.lookup(...)</span>
+            <span class="lbl-up">typed entity</span>
+            <span class="packet"></span>
+          </div>
+          <div class="mcp-node wiki">
+            <span class="badge">Wiki</span>
+            <span class="name">MCP server</span>
+            <span class="examples">knowledge graph</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer class="slide-footer">
+    <div class="logo"><svg><use href="#jpmc-logo"/></svg></div>
+    <div class="meta"><span>Interface</span><span class="sep">/</span><span>09 / 12</span></div>
+  </footer>
+</section>
+
+<!-- ============================================================
+     SLIDE 10 — FLYWHEELS
+     ============================================================ -->
+<section class="slide" data-title="Flywheels">
+  <div class="slide-content">
+    <div class="eyebrow reveal">
+      <span class="lbl">Why it compounds</span>
+      <h2>Three flywheels.</h2>
+      <div class="accent-line amber"></div>
+    </div>
+    <div class="grid cols-3">
+      <div class="card top-blue reveal">
+        <span class="card-label">Demand</span>
+        <h3>Agent pull</h3>
+        <p>Human-maintained wikis die because humans route around bad docs — Slack a colleague, guess, move on. Agents can't. As agent-mediated development grows, pull on this wiki grows with it.</p>
+      </div>
+      <div class="card top-teal reveal">
+        <span class="card-label">Signal</span>
+        <h3>Compile feedback</h3>
+        <p>Every failed lookup is a signal. Queries that return nothing reveal coverage gaps. Stale entities trigger re-compilation from source. The wiki learns what it's missing.</p>
+      </div>
+      <div class="card top-amber reveal">
+        <span class="card-label">Inertia</span>
+        <h3>Source gravity</h3>
+        <p>Once a doc is in the compile pipeline, keeping it current is cheaper than letting it rot — the eval harness catches drift automatically. Teams that contribute once stay connected.</p>
+      </div>
+    </div>
+  </div>
+  <footer class="slide-footer">
+    <div class="logo"><svg><use href="#jpmc-logo"/></svg></div>
+    <div class="meta"><span>Flywheels</span><span class="sep">/</span><span>10 / 12</span></div>
+  </footer>
+</section>
+
+<!-- ============================================================
+     SLIDE 11 — PILOT
+     ============================================================ -->
+<section class="slide" data-title="Pilot">
+  <div class="slide-content">
+    <div class="eyebrow reveal">
+      <span class="lbl">Where we start</span>
+      <h2>Pilot — Go engineer onboarding.</h2>
+      <div class="accent-line teal"></div>
+    </div>
+    <p class="reveal">Low regulatory risk. Concrete eval questions. High agent demand. Pain everyone recognises.</p>
+    <div class="grid cols-4">
+      <div class="card top-blue reveal">
+        <span class="card-label">01</span>
+        <h3>Scope &amp; Schema</h3>
+        <p>Inventory sources. Define entity types: Tool, Environment, Procedure, Policy, Service. Curate eval questions.</p>
+      </div>
+      <div class="card top-teal reveal">
+        <span class="card-label">02</span>
+        <h3>First Compile</h3>
+        <p>Manual ingest to validate schema against real docs. Start small — ~100 entities. Fix what breaks.</p>
+      </div>
+      <div class="card top-amber reveal">
+        <span class="card-label">03</span>
+        <h3>Automation</h3>
+        <p>Webhooks from Confluence and GHE trigger incremental recompile. MCP server behind VPN. Eval harness gates every promotion.</p>
+      </div>
+      <div class="card top-blue reveal">
+        <span class="card-label">04</span>
+        <h3>Pilot Use</h3>
+        <p>Onboard the next Go engineers entirely through the agent. Measure time-to-first-PR. Iterate on coverage gaps the harness reports.</p>
+      </div>
+    </div>
+  </div>
+  <footer class="slide-footer">
+    <div class="logo"><svg><use href="#jpmc-logo"/></svg></div>
+    <div class="meta"><span>Pilot</span><span class="sep">/</span><span>11 / 12</span></div>
+  </footer>
+</section>
+
+<!-- ============================================================
+     SLIDE 12 — CLOSING
+     ============================================================ -->
+<section class="slide dark" data-title="Close">
+  <div class="slide-content closing">
+    <span class="lbl reveal">Closing</span>
+    <div class="big reveal">Search is for humans.<br/><span class="em">This is for agents.</span></div>
+    <div class="accent-line teal reveal"></div>
+    <div class="tag reveal">Same docs · Different surface</div>
+  </div>
+  <footer class="slide-footer">
+    <div class="logo"><svg><use href="#jpmc-logo"/></svg></div>
+    <div class="meta"><span>Close</span><span class="sep">/</span><span>12 / 12</span></div>
+  </footer>
+</section>
+
+<script>
+/* ===========================================
+   SLIDE CONTROLLER
+   - IntersectionObserver reveals (.visible class)
+   - Keyboard nav (arrows, space, page up/down, home/end)
+   - Top progress bar + right-rail nav dots
+   - KG edges drawn dynamically from node positions
+   =========================================== */
+class SlidePresentation {
+  constructor() {
+    this.slides = Array.from(document.querySelectorAll('.slide'));
+    this.progressBar = document.getElementById('progressBar');
+    this.navDots = document.getElementById('navDots');
+    this.current = 0;
+    this.buildNavDots();
+    this.setupObserver();
+    this.setupKeyboard();
+    this.setupScrollProgress();
+    this.drawKgEdges();
+    let rAF;
+    window.addEventListener('resize', () => {
+      cancelAnimationFrame(rAF);
+      rAF = requestAnimationFrame(() => this.drawKgEdges());
+    });
+  }
+  buildNavDots() {
+    this.slides.forEach((s, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('aria-label', (s.dataset.title || ('Slide ' + (i + 1))));
+      b.title = s.dataset.title || ('Slide ' + (i + 1));
+      b.addEventListener('click', () => this.go(i));
+      this.navDots.appendChild(b);
+    });
+    this.dots = Array.from(this.navDots.children);
+  }
+  setActive(i) {
+    this.current = i;
+    if (this.dots) this.dots.forEach((d, di) => d.classList.toggle('active', di === i));
+    // recolor nav rail on dark slides
+    this.navDots.classList.toggle('on-dark', this.slides[i].classList.contains('dark'));
+  }
+  setupObserver() {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting && e.intersectionRatio > 0.5) {
+          e.target.classList.add('visible');
+          this.setActive(this.slides.indexOf(e.target));
+        }
+      });
+    }, { threshold: [0.5] });
+    this.slides.forEach(s => io.observe(s));
+    requestAnimationFrame(() => { this.slides[0]?.classList.add('visible'); this.setActive(0); });
+  }
+  go(i) {
+    i = Math.max(0, Math.min(this.slides.length - 1, i));
+    this.slides[i].scrollIntoView({ behavior: 'smooth' });
+  }
+  setupKeyboard() {
+    document.addEventListener('keydown', (e) => {
+      const key = e.key;
+      if (['ArrowDown','ArrowRight','PageDown',' '].includes(key)) {
+        e.preventDefault(); this.go(this.current + 1);
+      } else if (['ArrowUp','ArrowLeft','PageUp'].includes(key)) {
+        e.preventDefault(); this.go(this.current - 1);
+      } else if (key === 'Home') {
+        e.preventDefault(); this.go(0);
+      } else if (key === 'End') {
+        e.preventDefault(); this.go(this.slides.length - 1);
+      }
+    });
+  }
+  setupScrollProgress() {
+    const update = () => {
+      const h = document.documentElement;
+      const pct = h.scrollHeight > h.clientHeight
+        ? (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100 : 0;
+      if (this.progressBar) this.progressBar.style.width = pct + '%';
+    };
+    document.addEventListener('scroll', update, { passive: true });
+    update();
+  }
+  drawKgEdges() {
+    const graph = document.getElementById('kgGraph');
+    if (!graph) return;
+    graph.querySelectorAll('.kg-edge').forEach(e => e.remove());
+    const center = graph.querySelector('.kg-node.center');
+    const outer = graph.querySelectorAll('.kg-node:not(.center)');
+    if (!center) return;
+    const gRect = graph.getBoundingClientRect();
+    const cRect = center.getBoundingClientRect();
+    const cx = cRect.left - gRect.left + cRect.width/2;
+    const cy = cRect.top  - gRect.top  + cRect.height/2;
+    outer.forEach(n => {
+      const r = n.getBoundingClientRect();
+      const nx = r.left - gRect.left + r.width/2;
+      const ny = r.top  - gRect.top  + r.height/2;
+      const dx = nx - cx, dy = ny - cy;
+      const len = Math.hypot(dx, dy);
+      const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+      const edge = document.createElement('div');
+      edge.className = 'kg-edge';
+      edge.style.left = cx + 'px';
+      edge.style.top  = cy + 'px';
+      edge.style.width = len + 'px';
+      edge.style.transform = `rotate(${angle}deg)`;
+      graph.insertBefore(edge, graph.firstChild);
+    });
+  }
+}
+document.addEventListener('DOMContentLoaded', () => new SlidePresentation());
+</script>
+</body>
+</html>
